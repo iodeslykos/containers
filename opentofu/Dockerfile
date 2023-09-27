@@ -6,6 +6,7 @@ LABEL org.opencontainers.image.authors="iodeslykos <42@iodeslykos.com>"
 LABEL org.opencontainers.image.url="https://opentofu.org"
 LABEL org.opencontainers.image.source="https://github.com/opentofu/opentofu/"
 
+ARG build_arch=amd64
 ARG workdir=/go/src/github.com/opentofu/opentofu
 ARG opentf_branch=main
 
@@ -19,7 +20,7 @@ RUN apk add --no-cache \
 
 RUN git clone --depth 1 --branch ${opentf_branch} https://github.com/opentofu/opentofu.git ${workdir}
 
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -a -ldflags '-w -extldflags "-static"' -o /bin/opentofu
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=${build_arch} go build -a -ldflags '-w -extldflags "-static"' -o /bin/opentofu
 
 FROM alpine:3.18
 
