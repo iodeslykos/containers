@@ -1,30 +1,27 @@
 # hadolint global ignore=DL3018
-FROM golang:alpine as builder
+FROM alpine:3.18 as final
 
 LABEL org.opencontainers.image.title="opentofu"
 LABEL org.opencontainers.image.authors="iodeslykos <42@iodeslykos.com>"
 LABEL org.opencontainers.image.url="https://opentofu.org"
 LABEL org.opencontainers.image.source="https://github.com/opentofu/opentofu/"
 
-ARG build_arch=amd64
-ARG workdir=/go/src/github.com/opentofu/opentofu
-ARG opentf_branch=main
+ARG WORKDIR=/tmp/opentofu
+ARG BUILD_ARCH=arm64
+ARG APP=tofu
+ARG VERSION='1.6.0-alpha2'
 
-ENV PATH /go/bin:/usr/local/go/bin:$PATH
-ENV GOPATH /go
-
-WORKDIR ${workdir}
+WORKDIR ${WORKDIR}
 
 RUN apk add --no-cache \
-    git
+    curl
 
-RUN git clone --depth 1 --branch ${opentf_branch} https://github.com/opentofu/opentofu.git ${workdir}
+RUN curl -fsSL \
+    -o "${WORKDIR}/${APP}.apk" \
+    "https://github.com/opentofu/opentofu/releases/download/v${VERSION}/${APP}_${VERSION}_${BUILD_ARCH}.apk" \
+    && apk add --no-cache --allow-untrusted \
+        "${WORKDIR}/${APP}.apk" \
+        && rm -rf "${WORKDIR}/${APP}.apk"
 
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=${build_arch} go build -a -ldflags '-w -extldflags "-static"' -o /bin/opentofu
-
-FROM alpine:3.18
-
-COPY --from=builder /bin/opentofu /usr/local/bin/opentofu
-
-ENTRYPOINT [ "opentofu" ]
+ENTRYPOINT [ "tofu" ]
 CMD [ "--help" ]
