@@ -16,7 +16,7 @@ USER root
 
 # Install necessary tools.
 #hadolint ignore=DL3041
-RUN dnf install -y shadow-utils sudo zsh\
+RUN dnf install -y shadow-utils sudo zsh \
     && \
     dnf clean all \
     && \
