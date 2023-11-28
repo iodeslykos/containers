@@ -9,7 +9,7 @@ LABEL org.opencontainers.image.source="https://github.com/opentofu/opentofu/"
 ARG WORKDIR=/tmp/opentofu
 ARG BUILD_ARCH=arm64
 ARG APP=tofu
-ARG VERSION='1.6.0-alpha3'
+ARG VERSION='1.6.0-alpha5'
 
 WORKDIR ${WORKDIR}
 
