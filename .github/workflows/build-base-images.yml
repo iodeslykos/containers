@@ -8,8 +8,6 @@ on:
   push:
     branches:
       - '*'
-    paths:
-      - 'base/**/Dockerfile'
   workflow_dispatch:
 
 jobs:
