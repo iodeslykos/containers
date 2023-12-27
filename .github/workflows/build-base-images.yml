@@ -28,9 +28,6 @@ jobs:
           - dockerfile: base/debian/Dockerfile
             directory: base/debian
             image: ghcr.io/${{ github.repository }}/debian:latest
-          - dockerfile: base/nixos/Dockerfile
-            directory: base/nixos
-            image: ghcr.io/${{ github.repository }}/nixos:latest
     outputs:
       digests: ${{ steps.push-image.outputs.digest }}
     steps:
