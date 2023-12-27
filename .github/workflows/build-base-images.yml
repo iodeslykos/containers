@@ -9,9 +9,7 @@ on:
     branches:
       - '*'
     paths:
-      - 'base/**'
-    paths-ignore:
-      - '**.md'
+      - 'base/**/Dockerfile'
   workflow_dispatch:
 
 jobs:
