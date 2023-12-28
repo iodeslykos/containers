@@ -26,7 +26,7 @@ jobs:
           script: |
             const response = await github.rest.packages.getAllPackageVersionsForPackageOwnedByAuthenticatedUser({
               package_type: "container",
-              package_name: "${{ env.PACKAGE_NAME }}",
+              package_name: ${{ env.PACKAGE_NAME }},
               per_page: ${{ env.PER_PAGE }}
             });
             for(version of response.data) {
@@ -42,5 +42,5 @@ jobs:
             }
         env:
           OWNER: ${{ github.repository_owner }}
-          PACKAGE_NAME: ${{ matrix.images.image }}
+          PACKAGE_NAME: "${{ matrix.images.image }}"
           PER_PAGE: 100
