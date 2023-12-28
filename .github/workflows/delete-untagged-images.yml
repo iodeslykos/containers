@@ -29,7 +29,7 @@ jobs:
               package_name: "${{ env.PACKAGE_NAME }}",
               per_page: ${{ env.PER_PAGE }}
             });
-            print(response.data);
+            console.log(response.data);
         env:
           OWNER: ${{ github.repository_owner }}
           PACKAGE_NAME: ${{ matrix.images.image }}
