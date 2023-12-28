@@ -16,9 +16,9 @@ jobs:
       fail-fast: false
       matrix:
         images:
-          - image: containers/al2023
-          - image: containers/alpine
-          - image: containers/debian
+          - image: 'containers%2Fal2023'
+          - image: 'containers%2Falpine'
+          - image: 'containers%2Fdebian'
     steps:
       - name: "Delete untagged images."
         uses: actions/github-script@v7
@@ -26,21 +26,11 @@ jobs:
           script: |
             const response = await github.rest.packages.getAllPackageVersionsForPackageOwnedByAuthenticatedUser({
               package_type: "container",
-              package_name: ${{ env.PACKAGE_NAME }},
+              package_name: "${{ env.PACKAGE_NAME }}",
               per_page: ${{ env.PER_PAGE }}
             });
-            for(version of response.data) {
-                if (version.metadata.container.tags.length == 0) {
-                    console.log("Removing: " + version.id)
-                    const deleteResponse = await github.rest.packages.deletePackageVersionForAuthenticatedUser({
-                      package_type: "container",
-                      package_name: ${{ env.PACKAGE_NAME }},
-                      package_version_id: version.id
-                    });
-                    console.log("Status: " + deleteResponse.status)
-                }
-            }
+            print(response.data);
         env:
           OWNER: ${{ github.repository_owner }}
-          PACKAGE_NAME: "${{ matrix.images.image }}"
+          PACKAGE_NAME: ${{ matrix.images.image }}
           PER_PAGE: 100
