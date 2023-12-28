@@ -16,9 +16,9 @@ jobs:
       fail-fast: false
       matrix:
         images:
-          - image: 'containers%2Fal2023'
-          - image: 'containers%2Falpine'
-          - image: 'containers%2Fdebian'
+          - image: 'al2023'
+          - image: 'alpine'
+          - image: 'debian'
     steps:
       - name: "Delete untagged images."
         uses: actions/github-script@v7
