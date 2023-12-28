@@ -25,7 +25,7 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            const response = await github.rest.packages.getAllPackageVersionsForAPackageOwnedByTheAuthenticatedUser({
+            const response = await github.rest.packages.getAllPackageVersionsForPackageOwnedByAuthenticatedUser({
               package_type: "container",
               package_name: "${{ env.PACKAGE_NAME }}",
               per_page: ${{ env.PER_PAGE }}
@@ -33,7 +33,7 @@ jobs:
             for(version of response.data) {
                 if (version.metadata.container.tags.length == 0) {
                     console.log("Removing: " + version.id)
-                    const deleteResponse = await github.rest.packages.deletePackageVersionForTheAuthenticatedUser({
+                    const deleteResponse = await github.rest.packages.deletePackageVersionForAuthenticatedUser({
                       package_type: "container",
                       package_name: ${{ env.PACKAGE_NAME }},
                       package_version_id: version.id
