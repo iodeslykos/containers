@@ -26,6 +26,7 @@ jobs:
         platforms:
           - linux/amd64
           - linux/arm64
+          - linux/arm/v7
         images:
           - dockerfile: base/al2023/Dockerfile
             directory: base/al2023
