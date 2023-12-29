@@ -26,19 +26,18 @@ jobs:
         platforms:
           - linux/amd64
           - linux/arm64
-          - linux/arm/v7
         images:
           - dockerfile: base/al2023/Dockerfile
             directory: base/al2023
-            image: ${{ github.repository_owner }}/al2023:latest
+            image: ghcr.io/${{ github.repository_owner }}/al2023:latest
             description: "Amazon Linux 2023"
           - dockerfile: base/alpine/Dockerfile
             directory: base/alpine
-            image: ${{ github.repository_owner }}/alpine:latest
+            image: ghcr.io/${{ github.repository_owner }}/alpine:latest
             description: "Alpine Linux"
           - dockerfile: base/debian/Dockerfile
             directory: base/debian
-            image: ${{ github.repository_owner }}/debian:latest
+            image: ghcr.io/${{ github.repository_owner }}/debian:latest
             description: "Debian Linux (Slim)"
     outputs:
       digests: ${{ steps.push-image.outputs.digest }}
