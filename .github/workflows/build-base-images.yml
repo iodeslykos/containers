@@ -29,13 +29,16 @@ jobs:
         images:
           - dockerfile: base/al2023/Dockerfile
             directory: base/al2023
-            image: ghcr.io/${{ github.repository_owner }}/al2023:latest
+            image: ${{ github.repository_owner }}/al2023:latest
+            description: "Amazon Linux 2023"
           - dockerfile: base/alpine/Dockerfile
             directory: base/alpine
-            image: ghcr.io/${{ github.repository_owner }}/alpine:latest
+            image: ${{ github.repository_owner }}/alpine:latest
+            description: "Alpine Linux"
           - dockerfile: base/debian/Dockerfile
             directory: base/debian
-            image: ghcr.io/${{ github.repository_owner }}/debian:latest
+            image: ${{ github.repository_owner }}/debian:latest
+            description: "Debian Linux (Slim)"
     outputs:
       digests: ${{ steps.push-image.outputs.digest }}
     steps:
@@ -69,3 +72,4 @@ jobs:
           labels: |-
             org.opencontainers.image.vendor=${{ github.repository_owner }}
             org.opencontainers.image.source=https://github.com/${{ github.repository}}
+            org.opencontainers.image.description=${{ matrix.images.description }}
