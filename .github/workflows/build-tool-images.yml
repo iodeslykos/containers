@@ -9,7 +9,12 @@ on:
     - cron: '00 17 * * 4' # Every Thursday at 17:00 UTC.
   push:
     branches:
-      - 'trunk'
+      - '*'
+    paths:
+      - "tools/**/Dockerfile"
+  pull_request:
+    branches:
+      - '*'
     paths:
       - "tools/**/Dockerfile"
   workflow_dispatch:
