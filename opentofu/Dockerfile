@@ -1,5 +1,5 @@
-# hadolint global ignore=DL3018
-FROM alpine:3.18 as final
+# hadolint global ignore=DL3018,DL3007
+FROM ghcr.io/iodeslykos/alpine:latest as final
 
 LABEL org.opencontainers.image.title="opentofu"
 LABEL org.opencontainers.image.authors="iodeslykos <42@iodeslykos.com>"
@@ -9,7 +9,7 @@ LABEL org.opencontainers.image.source="https://github.com/opentofu/opentofu/"
 ARG WORKDIR=/tmp/opentofu
 ARG BUILD_ARCH=arm64
 ARG APP=tofu
-ARG VERSION='1.6.0-alpha5'
+ARG VERSION='1.6.0-rc1'
 
 WORKDIR ${WORKDIR}
 
