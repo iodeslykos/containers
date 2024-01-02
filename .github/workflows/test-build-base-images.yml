@@ -9,7 +9,7 @@ on:
     - cron: '45 16 * * 4' # Every Thursday at 16:45 UTC.
   push:
     branches:
-      - 'trunk'
+      - '*'
     paths:
       - "base/**/Dockerfile"
   workflow_dispatch:
