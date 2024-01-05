@@ -26,15 +26,15 @@ jobs:
         images:
           - dockerfile: base/al2023/Dockerfile
             directory: base/al2023
-            image: ghcr.io/flerpityflorp/al2023:latest
+            image: ghcr.io/${{ github.repository }}/testing/more/forward/slashes/al2023:latest
             description: "Amazon Linux 2023"
           - dockerfile: base/alpine/Dockerfile
             directory: base/alpine
-            image: ghcr.io/flerpityflorp/alpine:latest
+            image: ghcr.io/${{ github.repository }}/testing/more/forward/slashes/alpine:latest
             description: "Alpine Linux"
           - dockerfile: base/debian/Dockerfile
             directory: base/debian
-            image: ghcr.io/flerpityflorp/debian:latest
+            image: ghcr.io/${{ github.repository }}/testing/more/forward/slashes/debian:latest
             description: "Debian Linux (Slim)"
     outputs:
       digests: ${{ steps.push-image.outputs.digest }}
