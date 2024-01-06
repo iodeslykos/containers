@@ -1,0 +1,53 @@
+name: "Delete untagged images."
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+on:
+  workflow_dispatch:
+
+jobs:
+  delete-untagged-images:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        images:
+          - image: 'al2023'
+          - image: 'alpine'
+          - image: 'debian'
+    steps:
+      - name: "Delete untagged images."
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const response = await github.request(
+              "GET /user/packages/${{ env.PACKAGE_TYPE}}/${{ env.PACKAGE_NAME }}/versions",
+                {
+                  per_page: ${{ env.PER_PAGE }},
+                  headers: { Accept: "application/vnd.github.package-deletes-preview+json" }
+                }
+              );
+            console.log(response.data);
+            for (version of response.data) {
+              if (version.metadata.container.tags.length == 0) {
+                console.log("Attempting to delete ${{ env.PACKAGE_NAME }} version: " + version.id);
+                const deleteResponse = await github.request(
+                  "DELETE /user/packages/${{ env.PACKAGE_TYPE}}/${{ env.PACKAGE_NAME }}/versions/" + version.id,
+                  {
+                    headers: { Accept: "application/vnd.github.package-deletes-preview+json" }
+                  }
+                );
+                console.log(deleteResponse);
+              }
+            }
+        env:
+          OWNER: ${{ github.repository_owner }}
+          PACKAGE_NAME: ${{ matrix.images.image }}
+          PACKAGE_TYPE: "container"
+          PER_PAGE: 100
