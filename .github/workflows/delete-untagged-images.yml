@@ -1,13 +1,11 @@
 name: "Delete untagged images."
 
 on:
-  schedule:
-    - cron: "15 16 * * *" # 16:15 UTC
   workflow_dispatch:
-  push:
 
 jobs:
   delete-untagged-images:
+    if: github.actor == github.repository_owner
     runs-on: ubuntu-latest
     permissions:
       contents: read
