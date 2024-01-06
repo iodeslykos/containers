@@ -25,13 +25,32 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            const response = await github.rest.packages.getAllPackageVersionsForPackageOwnedByAuthenticatedUser({
-              package_type: "container",
-              package_name: "${{ env.PACKAGE_NAME }}",
-              per_page: ${{ env.PER_PAGE }}
+            const response = await github.request(
+              "GET /${{ env.OWNER }}/packages/${{ env.PACKAGE_TYPE}}/${{ env.PACKAGE_NAME }}/versions",
+              {
+                per_page: ${{ env.PER_PAGE }} },
+                headers: {
+                  Accept: "application/vnd.github.package-deletes-preview+json",
+                }
+              );
+            for (version of response.data) {
+              if (version.metadata.container.tags.length == 0) {
+                console.log("Attempting to delete ${{ env.PACKAGE_NAME }} version: " + version.id);
+                const deleteResponse = await github.request(
+                  "DELETE /${{ env.OWNER }}/packages/${{ env.PACKAGE_TYPE}}/${{ env.PACKAGE_NAME }}/versions" + version.id,
+                  {
+                    per_page: ${{ env.PER_PAGE }},
+                    headers: {
+                      Accept: "application/vnd.github.package-deletes-preview+json",
+                  }
+                );
+                console.log(deleteResponse);
+              }
+            }
             });
             console.log(response.data);
         env:
           OWNER: ${{ github.repository_owner }}
           PACKAGE_NAME: ${{ matrix.images.image }}
+          PACKAGE_TYPE: "container"
           PER_PAGE: 100
