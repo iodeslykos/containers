@@ -31,6 +31,8 @@ jobs:
         platforms:
           - linux/amd64
           - linux/arm64
+          - linux/arm/v7
+          - linux/arm/v8
         images:
           - dockerfile: tools/opentofu/Dockerfile
             directory: tools/opentofu/Dockerfile
@@ -67,7 +69,7 @@ jobs:
           tags: ${{ matrix.images.image }}
           platforms: ${{ matrix.platforms }}
           build-args: |
-            --build-arg BUILD_ARCH=$(tr -d 'linux/' <<< "${{ matrix.platforms }}")
+            --build-arg BUILD_ARCH=$(echo ${{ matrix.platforms }} | cut -d'/' -f2)
           labels: |-
             org.opencontainers.image.vendor=${{ github.repository_owner }}
             org.opencontainers.image.source=https://github.com/${{ github.repository}}
