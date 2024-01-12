@@ -74,7 +74,7 @@ jobs:
           push: true
           provenance: false
           tags: ${{ matrix.images.image }}
-          platforms: ${{ matrix.images.supported_platforms }}
+          platforms: ${{ join(matrix.images.supported_platforms, ',') }}
           build-args: |
             --build-arg BUILD_ARCH=$(echo ${{ matrix.images.supported_platforms }} | cut -d'/' -f2)
           labels: |-
