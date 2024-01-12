@@ -7,8 +7,6 @@ LABEL org.opencontainers.image.authors="iodeslykos <42@iodeslykos.com>"
 ARG VERSION=v1.29.0
 ARG BUILD_ARCH=arm64
 ENV USER=outis
-ENV UID=1000
-ENV GID=1000
 
 SHELL ["/bin/ash", "-eo", "pipefail", "-c"]
 
