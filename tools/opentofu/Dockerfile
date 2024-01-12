@@ -1,5 +1,5 @@
 # hadolint global ignore=DL3018,DL3007
-FROM ghcr.io/iodeslykos/alpine:latest as final
+FROM ghcr.io/iodeslykos/alpine:latest as base
 
 LABEL org.opencontainers.image.title="opentofu"
 LABEL org.opencontainers.image.authors="iodeslykos <42@iodeslykos.com>"
