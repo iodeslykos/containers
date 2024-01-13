@@ -117,9 +117,7 @@ jobs:
             directory: tools/kubectl
             image_tags: ${{ github.repository_owner }}/kubectl:latest
             description: "Kubectl is a CLI tool for running commands against Kubernetes clusters."
-        include:
-          - images:
-            - supported_platforms:
+            supported_platforms:
               - linux/amd64
               - linux/arm64
     outputs:
