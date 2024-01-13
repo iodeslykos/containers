@@ -9,10 +9,11 @@ on:
     - cron: '45 16 * * 4' # Every Thursday at 16:45 UTC.
   push:
     branches:
-      - 'trunk'
-    paths:
-      - "base/**/Dockerfile"
+      - '*'
   workflow_dispatch:
+
+env:
+  PUSH_IMAGES: ${{ github.ref == 'refs/heads/trunk' && true || false}}
 
 jobs:
   build-base-images:
@@ -28,16 +29,11 @@ jobs:
             directory: base/al2023
             image_tags: ${{ github.repository_owner }}/al2023:latest
             description: "Amazon Linux 2023"
-            supported_platforms:
-              - linux/amd64
-              - linux/arm64
           - dockerfile: base/alpine/Dockerfile
             directory: base/alpine
             image_tags: ${{ github.repository_owner }}/alpine:latest
             description: "Alpine Linux"
             supported_platforms:
-              - linux/amd64
-              - linux/arm64
               - linux/arm/v7
               - linux/arm/v8
           - dockerfile: base/debian/Dockerfile
@@ -45,10 +41,12 @@ jobs:
             image_tags: ${{ github.repository_owner }}/debian:latest
             description: "Debian Linux (Slim)"
             supported_platforms:
-              - linux/amd64
-              - linux/arm64
               - linux/arm/v7
               - linux/arm/v8
+        include:
+          - images.supported_platforms:
+            - linux/amd64
+            - linux/arm64
     outputs:
       digests: ${{ steps.build-push-image.outputs.digest }}
     steps:

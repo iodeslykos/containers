@@ -10,14 +10,13 @@ on:
   push:
     branches:
       - '*'
-    paths:
-      - "tools/**/Dockerfile"
   pull_request:
     branches:
       - '*'
-    paths:
-      - "tools/**/Dockerfile"
   workflow_dispatch:
+
+env:
+  PUSH_IMAGES: ${{ github.ref == 'refs/heads/trunk' && true || false}}
 
 jobs:
   build-tool-images:
@@ -75,7 +74,7 @@ jobs:
         with:
           context:
           file: ${{ matrix.images.dockerfile }}
-          push: true
+          push: ${{ env.PUSH_IMAGES}}
           provenance: false
           tags: ${{ join(matrix.images.image_tags, ',') }}
           platforms: ${{ join(matrix.images.supported_platforms, ',') }}
