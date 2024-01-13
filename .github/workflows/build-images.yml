@@ -1,4 +1,4 @@
-name: "Build base images."
+name: "Build and push images."
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
