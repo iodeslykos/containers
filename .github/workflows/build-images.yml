@@ -32,11 +32,16 @@ jobs:
             directory: base/al2023
             image_tags: ${{ github.repository_owner }}/al2023:latest
             description: "Amazon Linux 2023"
+            supported_platforms:
+              - linux/amd64
+              - linux/arm64
           - dockerfile: base/alpine/Dockerfile
             directory: base/alpine
             image_tags: ${{ github.repository_owner }}/alpine:latest
             description: "Alpine Linux"
             supported_platforms:
+              - linux/amd64
+              - linux/arm64
               - linux/arm/v7
               - linux/arm/v8
           - dockerfile: base/debian/Dockerfile
@@ -44,13 +49,10 @@ jobs:
             image_tags: ${{ github.repository_owner }}/debian:latest
             description: "Debian Linux (Slim)"
             supported_platforms:
-              - linux/arm/v7
-              - linux/arm/v8
-        include:
-         - images:
-           - supported_platforms:
               - linux/amd64
               - linux/arm64
+              - linux/arm/v7
+              - linux/arm/v8
     outputs:
       digests: ${{ steps.build-push-image.outputs.digest }}
     steps:
@@ -103,14 +105,16 @@ jobs:
       matrix:
         images:
           - dockerfile: tools/opentofu/Dockerfile
-            directory: tools/opentofu/Dockerfile
+            directory: tools/opentofu
             image_tags: ${{ github.repository_owner }}/opentofu:latest
             description: "OpenTofu is an open source IaC tool that allows management of infrastructure as code."
             supported_platforms:
+              - linux/amd64
+              - linux/arm64
               - linux/arm/v7
               - linux/arm/v8
           - dockerfile: tools/kubectl/Dockerfile
-            directory: tools/kubectl/Dockerfile
+            directory: tools/kubectl
             image_tags: ${{ github.repository_owner }}/kubectl:latest
             description: "Kubectl is a CLI tool for running commands against Kubernetes clusters."
         include:
@@ -147,7 +151,7 @@ jobs:
         id: push-image
         uses: docker/build-push-action@v5
         with:
-          context:
+          context: ${{ matrix.images.directory }}
           file: ${{ matrix.images.dockerfile }}
           push: ${{ env.PUSH_IMAGES}}
           provenance: false
