@@ -47,9 +47,10 @@ jobs:
               - linux/arm/v7
               - linux/arm/v8
         include:
-          - images.supported_platforms:
-            - linux/amd64
-            - linux/arm64
+         - images:
+           - supported_platforms:
+              - linux/amd64
+              - linux/arm64
     outputs:
       digests: ${{ steps.build-push-image.outputs.digest }}
     steps:
@@ -113,9 +114,10 @@ jobs:
             image_tags: ${{ github.repository_owner }}/kubectl:latest
             description: "Kubectl is a CLI tool for running commands against Kubernetes clusters."
         include:
-          - images.supported_platforms:
-            - linux/amd64
-            - linux/arm64
+          - images:
+            - supported_platforms:
+              - linux/amd64
+              - linux/arm64
     outputs:
       digests: ${{ steps.push-image.outputs.digest }}
     steps:
