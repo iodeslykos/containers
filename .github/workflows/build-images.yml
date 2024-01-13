@@ -103,14 +103,14 @@ jobs:
         images:
           - dockerfile: tools/opentofu/Dockerfile
             directory: tools/opentofu/Dockerfile
-            image: ${{ github.repository_owner }}/opentofu:latest
+            image_tags: ${{ github.repository_owner }}/opentofu:latest
             description: "OpenTofu is an open source IaC tool that allows management of infrastructure as code."
             supported_platforms:
               - linux/arm/v7
               - linux/arm/v8
           - dockerfile: tools/kubectl/Dockerfile
             directory: tools/kubectl/Dockerfile
-            image: ${{ github.repository_owner }}/kubectl:latest
+            image_tags: ${{ github.repository_owner }}/kubectl:latest
             description: "Kubectl is a CLI tool for running commands against Kubernetes clusters."
         include:
           - images.supported_platforms:
