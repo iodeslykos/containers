@@ -7,6 +7,7 @@ LABEL org.opencontainers.image.authors="iodeslykos <42@iodeslykos.com>"
 ARG VERSION=v1.29.0
 ARG BUILD_ARCH=arm64
 ENV USER=outis
+ENV GROUP=outis
 
 SHELL ["/bin/ash", "-eo", "pipefail", "-c"]
 
@@ -21,3 +22,4 @@ RUN curl -LO "https://dl.k8s.io/release/${VERSION}/bin/linux/${BUILD_ARCH}/kubec
 USER ${USER}
 
 ENTRYPOINT ["kubectl"]
+CMD ["--help"]
