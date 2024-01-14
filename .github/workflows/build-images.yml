@@ -43,7 +43,7 @@ jobs:
               - linux/amd64
               - linux/arm64
               - linux/arm/v7
-              - linux/arm/v84
+              - linux/arm/v8
           - dockerfile: base/debian/Dockerfile
             directory: base/debian
             image_tags: ${{ github.repository_owner }}/debian:latest
@@ -52,7 +52,7 @@ jobs:
               - linux/amd64
               - linux/arm64
               - linux/arm/v7
-              - linux/arm/v84
+              - linux/arm/v8
     outputs:
       digests: ${{ steps.build-push-image.outputs.digest }}
     steps:
@@ -88,7 +88,7 @@ jobs:
           push: true
           provenance: false
           tags: ${{ join(matrix.images.image_tags, ',') }}
-          platforms: ${{ join(matrix.images.supported_platforms, ',') }}
+          platforms: ${{ join(matrix.images.supported_platforms) }}
           labels: |-
             org.opencontainers.image.vendor=${{ github.repository_owner }}
             org.opencontainers.image.source=https://github.com/${{ github.repository}}
@@ -154,7 +154,7 @@ jobs:
           push: ${{ env.PUSH_IMAGES}}
           provenance: false
           tags: ${{ join(matrix.images.image_tags, ',') }}
-          platforms: ${{ join(matrix.images.supported_platforms, ',') }}
+          platforms: ${{ matrix.images.supported_platforms }}
           build-args: |
             --build-arg BUILD_ARCH=${{ matrix.images.supported_platforms }}
           labels: |-
