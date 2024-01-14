@@ -42,17 +42,18 @@ jobs:
             supported_platforms:
               - linux/amd64
               - linux/arm64
-              - linux/arm/v7
-              - linux/arm/v8
           - dockerfile: base/debian/Dockerfile
             directory: base/debian
             image_tags: ${{ github.repository_owner }}/debian:latest
             description: "Debian Linux (Slim)"
             supported_platforms:
-              - linux/amd64
-              - linux/arm64
               - linux/arm/v7
               - linux/arm/v8
+        include:
+          - images:
+            - supported_platforms:
+              - linux/amd64
+              - linux/arm64
     outputs:
       digests: ${{ steps.build-push-image.outputs.digest }}
     steps:
