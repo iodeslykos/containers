@@ -32,22 +32,27 @@ jobs:
             directory: base/al2023
             image_tags: ${{ github.repository_owner }}/al2023:latest
             description: "Amazon Linux 2023"
+            supported_platforms:
+              - linux/amd64
+              - linux/arm64
           - dockerfile: base/alpine/Dockerfile
             directory: base/alpine
             image_tags: ${{ github.repository_owner }}/alpine:latest
             description: "Alpine Linux"
+            supported_platforms:
+              - linux/amd64
+              - linux/arm64
+              - linux/arm/v7
+              - linux/arm/v84
           - dockerfile: base/debian/Dockerfile
             directory: base/debian
             image_tags: ${{ github.repository_owner }}/debian:latest
             description: "Debian Linux (Slim)"
             supported_platforms:
-              - linux/arm/v7
-              - linux/arm/v8
-        include:
-        - images:
-           - supported_platforms:
               - linux/amd64
               - linux/arm64
+              - linux/arm/v7
+              - linux/arm/v84
     outputs:
       digests: ${{ steps.build-push-image.outputs.digest }}
     steps:
@@ -150,6 +155,8 @@ jobs:
           provenance: false
           tags: ${{ join(matrix.images.image_tags, ',') }}
           platforms: ${{ join(matrix.images.supported_platforms, ',') }}
+          build-args: |
+            --build-arg BUILD_ARCH=${{ matrix.images.supported_platforms }}
           labels: |-
             org.opencontainers.image.vendor=${{ github.repository_owner }}
             org.opencontainers.image.source=https://github.com/${{ github.repository}}
