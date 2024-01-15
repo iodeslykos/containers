@@ -16,7 +16,8 @@ on:
   workflow_dispatch:
 
 env:
-  PUSH_IMAGES: true
+  PUSH_IMAGES: ${{ github.ref == 'refs/heads/trunk' }}
+  PROVENANCE: true
 
 jobs:
   build-base-images:
@@ -80,8 +81,8 @@ jobs:
         with:
           context: ${{ matrix.images.context }}
           file: ${{ matrix.images.context }}/Dockerfile
-          push: true
-          provenance: true
+          push: ${{ env.PUSH_IMAGES }}
+          provenance: ${{ env.PROVENANCE }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
           tags: |
@@ -147,7 +148,7 @@ jobs:
           context: ${{ matrix.images.context }}
           file: ${{ matrix.images.context }}/Dockerfile
           push: ${{ env.PUSH_IMAGES}}
-          provenance: true
+          provenance: ${{ env.PROVENANCE }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
           tags: |
