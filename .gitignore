@@ -1,0 +1,17 @@
+# macOS odds and ends.
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# On root of mounted volumes.
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+
+# IDE configurations.
+*.iml
+.idea/
+.vscode/
+.project/

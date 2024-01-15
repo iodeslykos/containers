@@ -16,7 +16,7 @@ on:
   workflow_dispatch:
 
 env:
-  PUSH_IMAGES: ${{ github.ref == 'refs/heads/trunk' && true || false}}
+  PUSH_IMAGES: true
 
 jobs:
   build-base-images:
@@ -28,25 +28,22 @@ jobs:
       fail-fast: false
       matrix:
         images:
-          - dockerfile: base/al2023/Dockerfile
-            directory: base/al2023
-            image_tags: ${{ github.repository_owner }}/al2023:latest
+          - context: base/al2023
+            image_name: ${{ github.repository_owner }}/al2023
             description: "Amazon Linux 2023"
             supported_platforms:
               - linux/amd64
               - linux/arm64
-          - dockerfile: base/alpine/Dockerfile
-            directory: base/alpine
-            image_tags: ${{ github.repository_owner }}/alpine:latest
+          - context: base/alpine
+            image_name: ${{ github.repository_owner }}/alpine
             description: "Alpine Linux"
             supported_platforms:
               - linux/amd64
               - linux/arm64
               - linux/arm/v7
               - linux/arm/v8
-          - dockerfile: base/debian/Dockerfile
-            directory: base/debian
-            image_tags: ${{ github.repository_owner }}/debian:latest
+          - context: base/debian
+            image_name: ${{ github.repository_owner }}/debian
             description: "Debian Linux (Slim)"
             supported_platforms:
               - linux/amd64
@@ -61,8 +58,6 @@ jobs:
         with:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
-      - name: "Set up QEMU."
-        uses: docker/setup-qemu-action@v3
       - name: "Set up Docker Buildx."
         uses: docker/setup-buildx-action@v3
         with:
@@ -83,11 +78,15 @@ jobs:
         uses: docker/build-push-action@v5
         if:
         with:
-          context:
-          file: ${{ matrix.images.dockerfile }}
+          context: ${{ matrix.images.context }}
+          file: ${{ matrix.images.context }}/Dockerfile
           push: true
-          provenance: false
-          tags: ${{ join(matrix.images.image_tags, ',') }}
+          provenance: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          tags: |
+            ${{ matrix.images.image_name }}:latest
+            ghcr.io/${{ matrix.images.image_name }}:latest
           platforms: ${{ join(matrix.images.supported_platforms, ',') }}
           labels: |-
             org.opencontainers.image.vendor=${{ github.repository_owner }}
@@ -104,18 +103,16 @@ jobs:
       fail-fast: false
       matrix:
         images:
-          - dockerfile: tools/opentofu/Dockerfile
-            directory: tools/opentofu
-            image_tags: ${{ github.repository_owner }}/opentofu:latest
+          - context: tools/opentofu
+            image_name: ${{ github.repository_owner }}/opentofu
             description: "OpenTofu is an open source IaC tool that allows management of infrastructure as code."
             supported_platforms:
               - linux/amd64
               - linux/arm64
               - linux/arm/v7
               - linux/arm/v8
-          - dockerfile: tools/kubectl/Dockerfile
-            directory: tools/kubectl
-            image_tags: ${{ github.repository_owner }}/kubectl:latest
+          - context: tools/kubectl
+            image_name: ${{ github.repository_owner }}/kubectl
             description: "Kubectl is a CLI tool for running commands against Kubernetes clusters."
             supported_platforms:
               - linux/amd64
@@ -128,8 +125,6 @@ jobs:
         with:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
-      - name: "Set up QEMU."
-        uses: docker/setup-qemu-action@v3
       - name: "Set up Docker Buildx."
         uses: docker/setup-buildx-action@v3
         with:
@@ -149,11 +144,15 @@ jobs:
         id: push-image
         uses: docker/build-push-action@v5
         with:
-          context: ${{ matrix.images.directory }}
-          file: ${{ matrix.images.dockerfile }}
+          context: ${{ matrix.images.context }}
+          file: ${{ matrix.images.context }}/Dockerfile
           push: ${{ env.PUSH_IMAGES}}
-          provenance: false
-          tags: ${{ join(matrix.images.image_tags, ',') }}
+          provenance: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          tags: |
+            ${{ matrix.images.image_name }}:latest
+            ghcr.io/${{ matrix.images.image_name }}:latest
           platforms: ${{ join(matrix.images.supported_platforms, ',') }}
           labels: |-
             org.opencontainers.image.vendor=${{ github.repository_owner }}
