@@ -45,8 +45,6 @@ jobs:
               - linux/arm/v7
               - linux/arm/v8
               - linux/arm64/v8
-              - darwin/amd64
-              - darwin/arm64
           - context: base/debian
             image_name: ${{ github.repository_owner }}/debian
             description: "Debian Linux (Slim)"
@@ -56,8 +54,6 @@ jobs:
               - linux/arm/v7
               - linux/arm/v8
               - linux/arm64/v8
-              - darwin/amd64
-              - darwin/arm64
     outputs:
       digests: ${{ steps.build-push-image.outputs.digest }}
     steps:
