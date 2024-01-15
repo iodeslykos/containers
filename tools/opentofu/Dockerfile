@@ -7,7 +7,7 @@ LABEL org.opencontainers.image.url="https://opentofu.org"
 LABEL org.opencontainers.image.source="https://github.com/opentofu/opentofu/"
 
 ARG WORKDIR=/tmp/opentofu
-ARG TARGETPLATFORM=linux/arm64
+ARG TARGETPLATFORM
 ARG APP=tofu
 ARG VERSION='1.6.0'
 
