@@ -86,7 +86,9 @@ jobs:
           context:
           file: ${{ matrix.images.dockerfile }}
           push: true
-          provenance: false
+          provenance: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
           tags: ${{ join(matrix.images.image_tags, ',') }}
           platforms: ${{ join(matrix.images.supported_platforms, ',') }}
           labels: |-
@@ -152,7 +154,9 @@ jobs:
           context: ${{ matrix.images.directory }}
           file: ${{ matrix.images.dockerfile }}
           push: ${{ env.PUSH_IMAGES}}
-          provenance: false
+          provenance: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
           tags: ${{ join(matrix.images.image_tags, ',') }}
           platforms: ${{ join(matrix.images.supported_platforms, ',') }}
           labels: |-
