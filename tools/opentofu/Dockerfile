@@ -1,4 +1,4 @@
-# hadolint global ignore=DL3018,DL3007
+# hadolint ignore=DL3007
 FROM ghcr.io/iodeslykos/alpine:latest as base
 
 LABEL org.opencontainers.image.title="opentofu"
@@ -13,14 +13,14 @@ ARG VERSION='1.6.0'
 
 ENV USER=outis
 
-SHELL ["/bin/ash", "-eo", "pipefail"]
-
 WORKDIR ${WORKDIR}
 
+# hadolint ignore=DL3018
 RUN apk add --no-cache \
     curl
 
-RUN TARGET_ARCH="$(echo "${TARGETPLATFORM}" | cut -d '/' -f2)" \
+# hadolint ignore=DL4006
+RUN TARGET_ARCH=$(echo "${TARGETPLATFORM}" | cut -d '/' -f2) \
     && curl -fsSL -o "${WORKDIR}/${APP}.apk" \
         "https://github.com/opentofu/opentofu/releases/download/v${VERSION}/${APP}_${VERSION}_${TARGET_ARCH}.apk" \
     && apk add --no-cache --allow-untrusted \

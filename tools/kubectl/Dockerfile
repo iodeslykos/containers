@@ -1,17 +1,16 @@
-# hadolint global ignore=DL3018,DL3007
+# hadolint ignore=DL3007
 FROM ghcr.io/iodeslykos/alpine:latest as base
 
 LABEL org.opencontainers.image.title="kubectl"
 LABEL org.opencontainers.image.authors="iodeslykos <42@iodeslykos.com>"
 
 ARG VERSION=v1.29.0
-ARG TARGETPLATFORM=linux/amd64
+ARG TARGETPLATFORM
 ENV USER=outis
-
-SHELL ["/bin/ash", "-eo", "pipefail", "-c"]
 
 WORKDIR /tmp
 
+# hadolint ignore=DL4006
 RUN RUN TARGET_ARCH="$(echo ${TARGETPLATFORM} | cut -d '/' -f2)" \
     && curl -LO "https://dl.k8s.io/release/${VERSION}/bin/linux/${TARGET_ARCH}/kubectl" \
     && curl -LO "https://dl.k8s.io/${VERSION}/bin/linux/${TARGET_ARCH}/kubectl.sha256" \
