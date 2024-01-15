@@ -16,7 +16,7 @@ on:
   workflow_dispatch:
 
 env:
-  PUSH_IMAGES: ${{ github.ref == 'refs/heads/trunk' && true || false}}
+  PUSH_IMAGES: true
 
 jobs:
   build-base-images:
