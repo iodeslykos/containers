@@ -11,7 +11,7 @@ ENV USER=outis
 WORKDIR /tmp
 
 # hadolint ignore=DL4006
-RUN RUN TARGET_ARCH="$(echo ${TARGETPLATFORM} | cut -d '/' -f2)" \
+RUN TARGET_ARCH=$(echo "${TARGETPLATFORM}" | cut -d '/' -f2) \
     && curl -LO "https://dl.k8s.io/release/${VERSION}/bin/linux/${TARGET_ARCH}/kubectl" \
     && curl -LO "https://dl.k8s.io/${VERSION}/bin/linux/${TARGET_ARCH}/kubectl.sha256" \
     && echo "$(cat kubectl.sha256) kubectl" | sha256sum -c - \
