@@ -17,7 +17,7 @@ on:
 
 env:
   PUSH_IMAGES: ${{ github.ref == 'refs/heads/trunk' }}
-  PROVENANCE: true
+  PROVENANCE: false
 
 jobs:
   build-base-images:
@@ -91,11 +91,15 @@ jobs:
           tags: |
             ${{ matrix.images.image_name }}:latest
             ghcr.io/${{ matrix.images.image_name }}:latest
+            ${{ matrix.images.image_name }}:${{ github.sha }}
+            ghcr.io/${{ matrix.images.image_name }}:${{ github.sha }}
           platforms: ${{ join(matrix.images.supported_platforms, ',') }}
           labels: |-
             org.opencontainers.image.vendor=${{ github.repository_owner }}
             org.opencontainers.image.source=https://github.com/${{ github.repository}}
             org.opencontainers.image.description=${{ matrix.images.description }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.title=${{ matrix.images.image_name }}
 
   build-tool-images:
     needs: build-base-images
@@ -158,8 +162,13 @@ jobs:
           tags: |
             ${{ matrix.images.image_name }}:latest
             ghcr.io/${{ matrix.images.image_name }}:latest
+            ${{ matrix.images.image_name }}:${{ github.sha }}
+            ghcr.io/${{ matrix.images.image_name }}:${{ github.sha }}
           platforms: ${{ join(matrix.images.supported_platforms, ',') }}
           labels: |-
             org.opencontainers.image.vendor=${{ github.repository_owner }}
             org.opencontainers.image.source=https://github.com/${{ github.repository}}
             org.opencontainers.image.description=${{ matrix.images.description }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.title=${{ matrix.images.image_name }}
+            org.opencontainers.image.version=${{ github.ref }}
