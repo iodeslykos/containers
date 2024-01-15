@@ -7,7 +7,7 @@ LABEL org.opencontainers.image.url="https://opentofu.org"
 LABEL org.opencontainers.image.source="https://github.com/opentofu/opentofu/"
 
 ARG WORKDIR=/tmp/opentofu
-ARG BUILD_ARCH=linux/arm64
+ARG TARGETPLATFORM=linux/arm64
 ARG APP=tofu
 ARG VERSION='1.6.0'
 
@@ -20,7 +20,7 @@ WORKDIR ${WORKDIR}
 RUN apk add --no-cache \
     curl
 
-RUN TARGET_ARCH="$(echo "${BUILD_ARCH}" | cut -d '/' -f2)" \
+RUN TARGET_ARCH="$(echo "${TARGETPLATFORM}" | cut -d '/' -f2)" \
     && curl -fsSL -o "${WORKDIR}/${APP}.apk" \
         "https://github.com/opentofu/opentofu/releases/download/v${VERSION}/${APP}_${VERSION}_${TARGET_ARCH}.apk" \
     && apk add --no-cache --allow-untrusted \
