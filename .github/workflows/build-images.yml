@@ -74,8 +74,8 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: "Set environment variables."
         run: |
-          SHA_SHORT=$(git rev-parse --short ${{ github.sha }})
-          echo "$SHA_SHORT" >> $GITHUB_ENV
+          sha_short=$(git rev-parse --short ${{ github.sha }})
+          echo "SHA_SHORT=$sha_short" >> $GITHUB_ENV
       - name: "Set up Docker Buildx."
         uses: docker/setup-buildx-action@v3
         with:
