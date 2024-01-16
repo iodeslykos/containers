@@ -10,9 +10,6 @@ on:
   push:
     branches:
       - 'trunk'
-    paths:
-      - "base/**/Dockerfile"
-      - "tools/**/Dockerfile"
   workflow_dispatch:
 
 env:
