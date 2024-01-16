@@ -45,7 +45,6 @@ jobs:
             supported_platforms:
               - linux/amd64
               - linux/arm64
-              - linux/arm64/v8
           - context: base/alpine
             image_name: ${{ github.repository_owner }}/alpine
             description: "Alpine Linux"
@@ -54,7 +53,6 @@ jobs:
               - linux/arm64
               - linux/arm/v7
               - linux/arm/v8
-              - linux/arm64/v8
           - context: base/debian
             image_name: ${{ github.repository_owner }}/debian
             description: "Debian Linux (Slim)"
@@ -63,7 +61,6 @@ jobs:
               - linux/arm64
               - linux/arm/v7
               - linux/arm/v8
-              - linux/arm64/v8
     outputs:
       digests: ${{ steps.build-push-image.outputs.digest }}
     steps:
@@ -133,7 +130,6 @@ jobs:
               - linux/arm64
               - linux/arm/v7
               - linux/arm/v8
-              - linux/arm64/v8
           - context: tools/kubectl
             image_name: ${{ github.repository_owner }}/kubectl
             description: "Kubectl is a CLI tool for running commands against Kubernetes clusters."
@@ -142,7 +138,6 @@ jobs:
               - linux/arm64
               - linux/arm/v7
               - linux/arm/v8
-              - linux/arm64/v8
     outputs:
       digests: ${{ steps.push-image.outputs.digest }}
     steps:
