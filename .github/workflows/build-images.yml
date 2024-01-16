@@ -11,10 +11,23 @@ on:
     branches:
       - 'trunk'
   workflow_dispatch:
+    inputs:
+      push_images:
+        description: "Push built images to registries."
+        type: boolean
+        required: true
+        default: true
+      provenance:
+        description: "Enable provenance attestations."
+        type: boolean
+        required: true
+        default: false
 
 env:
-  PUSH_IMAGES: ${{ github.ref == 'refs/heads/trunk' }}
-  PROVENANCE: false
+  DEFAULT_TAG: 'latest'
+  PROVENANCE: ${{ inputs.provenance }}
+  PUSH_IMAGES: ${{ github.ref == 'refs/heads/trunk' || inputs.push_images }}
+  SHA_SHORT: ''
 
 jobs:
   build-base-images:
@@ -54,6 +67,10 @@ jobs:
     outputs:
       digests: ${{ steps.build-push-image.outputs.digest }}
     steps:
+      - name: "Set environment variables."
+        run: |
+          SHA_SHORT=$(git rev-parse --short ${{ github.sha }})
+          echo "$SHA_SHORT" >> $GITHUB_ENV
       - name: "Checkout repository."
         uses: actions/checkout@v4
         with:
@@ -86,10 +103,10 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           tags: |
-            ${{ matrix.images.image_name }}:latest
-            ghcr.io/${{ matrix.images.image_name }}:latest
-            ${{ matrix.images.image_name }}:${{ github.sha }}
-            ghcr.io/${{ matrix.images.image_name }}:${{ github.sha }}
+            ${{ matrix.images.image_name }}:${{ env.DEFAULT_TAG }}
+            ghcr.io/${{ matrix.images.image_name }}:${{ env.DEFAULT_TAG }}
+            ${{ matrix.images.image_name }}:${{ env.SHA_SHORT }}
+            ghcr.io/${{ matrix.images.image_name }}:${{ env.SHA_SHORT }}
           platforms: ${{ join(matrix.images.supported_platforms, ',') }}
           labels: |-
             org.opencontainers.image.vendor=${{ github.repository_owner }}
@@ -157,10 +174,10 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           tags: |
-            ${{ matrix.images.image_name }}:latest
-            ghcr.io/${{ matrix.images.image_name }}:latest
-            ${{ matrix.images.image_name }}:${{ github.sha }}
-            ghcr.io/${{ matrix.images.image_name }}:${{ github.sha }}
+            ${{ matrix.images.image_name }}:${{ env.DEFAULT_TAG }}
+            ghcr.io/${{ matrix.images.image_name }}:${{ env.DEFAULT_TAG }}
+            ${{ matrix.images.image_name }}:${{ env.SHA_SHORT }}
+            ghcr.io/${{ matrix.images.image_name }}:${{ env.SHA_SHORT }}
           platforms: ${{ join(matrix.images.supported_platforms, ',') }}
           labels: |-
             org.opencontainers.image.vendor=${{ github.repository_owner }}
