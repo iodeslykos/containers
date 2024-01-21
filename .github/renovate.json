@@ -5,6 +5,7 @@
   ],
   "assigneesFromCodeOwners": true,
   "dependencyDashboardTitle": "renovate(bot): Dependency Dashboard",
+  "pinDigests": true,
   "semanticCommits": "enabled",
   "timezone": "Etc/UTC"
 }
