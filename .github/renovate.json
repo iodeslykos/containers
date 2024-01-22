@@ -1,7 +1,10 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
-    "config:recommended"
+    "config:recommended",
+    "config:best-practices",
+    "security:openssf-scorecard",
+    ":disableRateLimiting"
   ],
   "assigneesFromCodeOwners": true,
   "dependencyDashboardTitle": "renovate(bot): Dependency Dashboard",
