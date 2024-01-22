@@ -25,7 +25,8 @@ WORKDIR ${workdir}/cmd/tofu
 
 RUN CGO_ENABLED=0 GOOS=${build_os} GOARCH=${build_arch} go build -a -ldflags "-w -s -extldflags '-static' -X 'main.experimentsAllowed=yes'" -o /bin/tofu
 
-FROM alpine:3.18 as final
+# hadolint ignore=DL3007
+FROM ghcr.io/iodeslykos/alpine:latest as final
 
 COPY --from=builder /bin/tofu /usr/local/bin/tofu
 
