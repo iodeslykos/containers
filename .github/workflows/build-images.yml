@@ -73,10 +73,6 @@ jobs:
         with:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
-      - name: "Set environment variables."
-        run: |
-          sha_short=$(git rev-parse --short ${{ github.sha }})
-          echo "SHA_SHORT=$sha_short" >> $GITHUB_ENV
       - name: "Set up Docker Buildx."
         uses: docker/setup-buildx-action@v3
         with:
@@ -106,8 +102,6 @@ jobs:
           tags: |
             ${{ matrix.images.image_name }}:${{ env.DEFAULT_TAG }}
             ghcr.io/${{ matrix.images.image_name }}:${{ env.DEFAULT_TAG }}
-            ${{ matrix.images.image_name }}:${{ env.SHA_SHORT }}
-            ghcr.io/${{ matrix.images.image_name }}:${{ env.SHA_SHORT }}
           platforms: ${{ join(matrix.images.supported_platforms, ',') }}
           labels: |-
             org.opencontainers.image.vendor=${{ github.repository_owner }}
@@ -150,10 +144,6 @@ jobs:
         with:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
-      - name: "Set environment variables."
-        run: |
-          sha_short=$(git rev-parse --short ${{ github.sha }})
-          echo "SHA_SHORT=$sha_short" >> $GITHUB_ENV
       - name: "Set up Docker Buildx."
         uses: docker/setup-buildx-action@v3
         with:
@@ -182,8 +172,6 @@ jobs:
           tags: |
             ${{ matrix.images.image_name }}:${{ env.DEFAULT_TAG }}
             ghcr.io/${{ matrix.images.image_name }}:${{ env.DEFAULT_TAG }}
-            ${{ matrix.images.image_name }}:${{ env.SHA_SHORT }}
-            ghcr.io/${{ matrix.images.image_name }}:${{ env.SHA_SHORT }}
           platforms: ${{ join(matrix.images.supported_platforms, ',') }}
           labels: |-
             org.opencontainers.image.vendor=${{ github.repository_owner }}
