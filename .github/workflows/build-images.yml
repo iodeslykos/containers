@@ -11,9 +11,9 @@ on:
     branches:
       - 'trunk'
   pull_request:
-    # paths:
-    #   - 'base/**/Dockerfile'
-    #   - 'tools/**/Dockerfile'
+    paths:
+      - 'base/**/Dockerfile'
+      - 'tools/**/Dockerfile'
   workflow_dispatch:
     inputs:
       push_images:
