@@ -30,7 +30,7 @@ on:
 env:
   DEFAULT_TAG: 'latest'
   PROVENANCE: ${{ inputs.provenance }}
-  PUSH_IMAGES: ${{ github.ref == 'refs/heads/trunk' || inputs.push_images }}
+  PUSH_IMAGES: ${{ inputs.push_images || github.ref == 'refs/heads/trunk' }}
   SHA_SHORT: ''
 
 jobs:
