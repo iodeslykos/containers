@@ -1,4 +1,3 @@
-# hadolint global ignore=DL3018
 FROM golang:alpine@sha256:fd78f2fb1e49bcf343079bbbb851c936a18fc694df993cbddaa24ace0cc724c5 as builder
 
 LABEL org.opencontainers.image.title="opentofu"
@@ -16,16 +15,15 @@ ENV GOPATH /go
 
 WORKDIR ${workdir}
 
+# hadolint ignore=DL3018
 RUN apk add --no-cache \
-    git
-
-RUN git clone --depth 1 --branch ${opentf_branch} https://github.com/opentofu/opentofu.git ${workdir}
+    git \
+    && git clone --depth 1 --branch ${opentf_branch} https://github.com/opentofu/opentofu.git ${workdir}
 
 WORKDIR ${workdir}/cmd/tofu
 
 RUN CGO_ENABLED=0 GOOS=${build_os} GOARCH=${build_arch} go build -a -ldflags "-w -s -extldflags '-static' -X 'main.experimentsAllowed=yes'" -o /bin/tofu
 
-# hadolint ignore=DL3007
 FROM ghcr.io/iodeslykos/alpine:latest@sha256:af0546bc9c1cb9f14ce41198f02fd35ab9dad352f568babd6208fcf9d6f25566 as final
 
 COPY --from=builder /bin/tofu /usr/local/bin/tofu
