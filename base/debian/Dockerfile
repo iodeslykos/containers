@@ -1,4 +1,4 @@
-FROM debian:12.4-slim
+FROM debian:12.4-slim@sha256:f4a83aa865a2b4a064ff142aa91c713180df9fcb86ce676b5de2981029379c37
 
 ENV USER=outis
 ENV GROUP=outis
