@@ -188,7 +188,7 @@ jobs:
 
   build-experimental-images:
     needs: build-base-images
-    if: input.build_experimental_images
+    if: inputs.build_experimental_images
     runs-on: ubuntu-latest
     permissions:
       contents: read
