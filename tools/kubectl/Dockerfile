@@ -4,7 +4,7 @@ FROM ghcr.io/iodeslykos/alpine:latest@sha256:73870f07bd6e146b61b4c60bf276ef4ba6b
 LABEL org.opencontainers.image.title="kubectl"
 LABEL org.opencontainers.image.authors="iodeslykos <42@iodeslykos.com>"
 
-ARG VERSION=v1.29.0
+ARG VERSION=1.29.1
 ARG TARGETPLATFORM
 ARG TARGETARCH
 ARG TARGETOS
@@ -13,8 +13,8 @@ ENV USER=outis
 WORKDIR /tmp
 
 # hadolint ignore=DL4006
-RUN curl -LO "https://dl.k8s.io/release/${VERSION}/bin/linux/${TARGETARCH}/kubectl" \
-    && curl -LO "https://dl.k8s.io/${VERSION}/bin/linux/${TARGETARCH}/kubectl.sha256" \
+RUN curl -LO "https://dl.k8s.io/release/v${VERSION}/bin/linux/${TARGETARCH}/kubectl" \
+    && curl -LO "https://dl.k8s.io/v${VERSION}/bin/linux/${TARGETARCH}/kubectl.sha256" \
     && echo "$(cat kubectl.sha256) kubectl" | sha256sum -c - \
     && mv kubectl /usr/local/bin/kubectl \
     && chmod +x /usr/local/bin/kubectl
@@ -22,3 +22,4 @@ RUN curl -LO "https://dl.k8s.io/release/${VERSION}/bin/linux/${TARGETARCH}/kubec
 USER ${USER}
 
 ENTRYPOINT ["kubectl"]
+CMD ["--help"]
