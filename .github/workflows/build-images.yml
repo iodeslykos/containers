@@ -74,7 +74,7 @@ jobs:
       digests: ${{ steps.build-push-image.outputs.digest }}
     steps:
       - name: "Checkout repository."
-        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
+        uses: actions/checkout@1d96c772d19495a3b5c517cd2bc0cb401ea0529f # v4
         with:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -145,7 +145,7 @@ jobs:
       digests: ${{ steps.push-image.outputs.digest }}
     steps:
       - name: "Checkout repository."
-        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
+        uses: actions/checkout@1d96c772d19495a3b5c517cd2bc0cb401ea0529f # v4
         with:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -209,7 +209,7 @@ jobs:
       digests: ${{ steps.push-image.outputs.digest }}
     steps:
       - name: "Checkout repository."
-        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
+        uses: actions/checkout@1d96c772d19495a3b5c517cd2bc0cb401ea0529f # v4
         with:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
