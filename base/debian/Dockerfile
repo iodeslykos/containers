@@ -7,7 +7,7 @@ ENV GID=1000
 
 # hadolint ignore=DL3008
 RUN apt-get update \
-    && apt-get upgrade \
+    && apt-get upgrade -y \
     && apt-get install -y --no-install-recommends \
         bash ca-certificates zsh tzdata \
     && rm -rf /var/lib/apt/lists/*
