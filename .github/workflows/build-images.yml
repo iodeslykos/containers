@@ -20,7 +20,7 @@ on:
         description: "Build experimental images."
         type: boolean
         required: true
-        default: false
+        default: true
       push_images:
         description: "Push built images to registries."
         type: boolean
