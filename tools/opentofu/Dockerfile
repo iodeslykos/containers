@@ -1,5 +1,5 @@
 # hadolint ignore=DL3007
-FROM ghcr.io/iodeslykos/alpine:latest@sha256:004e9af99c7d2af32e185fbb9941a6dc8eacdba97925343fc386121ca7ae0ce8 AS base
+FROM ghcr.io/iodeslykos/alpine:latest@sha256:7d6bbd716353a0523c44d61b2f689dcd6532955bd65680cf22b241ffc8eac66d AS base
 
 LABEL org.opencontainers.image.title="opentofu"
 LABEL org.opencontainers.image.authors="iodeslykos <42@iodeslykos.com>"
