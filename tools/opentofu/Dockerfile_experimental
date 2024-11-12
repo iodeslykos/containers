@@ -1,4 +1,4 @@
-FROM golang:alpine@sha256:09742590377387b931261cbeb72ce56da1b0d750a27379f7385245b2b058b63a AS builder
+FROM golang:alpine@sha256:9f68de83bef9e75cda99597d51778f4f5776ab8d9374e1094a3cd724401094c3 AS builder
 
 LABEL org.opencontainers.image.title="opentofu"
 LABEL org.opencontainers.image.authors="iodeslykos <42@iodeslykos.com>"
