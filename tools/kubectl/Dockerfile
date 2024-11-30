@@ -4,7 +4,7 @@ FROM ghcr.io/iodeslykos/alpine:latest@sha256:a2e36dddc4d9def4309b1c6e782833fedef
 LABEL org.opencontainers.image.title="kubectl"
 LABEL org.opencontainers.image.authors="iodeslykos <42@iodeslykos.com>"
 
-ARG VERSION=1.29.4
+ARG VERSION=1.31.2
 ARG TARGETPLATFORM
 ARG TARGETARCH
 ARG TARGETOS
