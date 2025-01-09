@@ -1,5 +1,5 @@
 ---
-name: lint-checks
+name: lint
 
 on:
   pull_request:
