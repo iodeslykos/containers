@@ -8,6 +8,14 @@
   ],
   "assigneesFromCodeOwners": true,
   "dependencyDashboardTitle": "renovate(bot): Dependency Dashboard",
+  "packageRules": [
+    {
+      "description": "Automatically merge PRs that match select update types.",
+      "matchUpdateTypes": ["minor", "patch", "pin", "digest"],
+      "automerge": true,
+      "automergeType": "branch"
+    }
+  ],
   "pinDigests": true,
   "semanticCommits": "enabled",
   "timezone": "Etc/UTC"
