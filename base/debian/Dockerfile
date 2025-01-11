@@ -1,4 +1,4 @@
-FROM debian:12.4-slim
+FROM debian:12.8-slim@sha256:d365f4920711a9074c4bcd178e8f457ee59250426441ab2a5f8106ed8fe948eb
 
 ENV USER=outis
 ENV GROUP=outis
@@ -7,7 +7,7 @@ ENV GID=1000
 
 # hadolint ignore=DL3008
 RUN apt-get update \
-    && apt-get upgrade \
+    && apt-get upgrade -y \
     && apt-get install -y --no-install-recommends \
         bash ca-certificates zsh tzdata \
     && rm -rf /var/lib/apt/lists/*

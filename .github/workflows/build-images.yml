@@ -9,15 +9,34 @@ on:
     - cron: '45 16 * * 4' # Every Thursday at 16:45 UTC.
   push:
     branches:
-      - '*'
+      - 'trunk'
   pull_request:
-    branches:
-      - '*'
+    paths:
+      - 'base/**/Dockerfile'
+      - 'tools/**/Dockerfile'
   workflow_dispatch:
+    inputs:
+      build_experimental_images:
+        description: "Build experimental images."
+        type: boolean
+        required: true
+        default: true
+      push_images:
+        description: "Push built images to registries."
+        type: boolean
+        required: true
+        default: false
+      provenance:
+        description: "Enable provenance attestations."
+        type: boolean
+        required: true
+        default: false
 
 env:
-  PUSH_IMAGES: ${{ github.ref == 'refs/heads/trunk' }}
-  PROVENANCE: false
+  DEFAULT_TAG: 'latest'
+  PROVENANCE: ${{ inputs.provenance }}
+  PUSH_IMAGES: ${{ inputs.push_images || github.ref == 'refs/heads/trunk' }}
+  SHA_SHORT: ''
 
 jobs:
   build-base-images:
@@ -35,7 +54,6 @@ jobs:
             supported_platforms:
               - linux/amd64
               - linux/arm64
-              - linux/arm64/v8
           - context: base/alpine
             image_name: ${{ github.repository_owner }}/alpine
             description: "Alpine Linux"
@@ -44,7 +62,6 @@ jobs:
               - linux/arm64
               - linux/arm/v7
               - linux/arm/v8
-              - linux/arm64/v8
           - context: base/debian
             image_name: ${{ github.repository_owner }}/debian
             description: "Debian Linux (Slim)"
@@ -53,33 +70,32 @@ jobs:
               - linux/arm64
               - linux/arm/v7
               - linux/arm/v8
-              - linux/arm64/v8
     outputs:
       digests: ${{ steps.build-push-image.outputs.digest }}
     steps:
       - name: "Checkout repository."
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
         with:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: "Set up Docker Buildx."
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@6524bf65af31da8d45b59e8c27de4bd072b392f5 # v3
         with:
           platforms: ${{ join(matrix.images.supported_platforms, ',') }}
       - name: "Login: ghcr.io"
-        uses: docker/login-action@v3
+        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: "Login: Docker Hub"
-        uses: docker/login-action@v3
+        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3
         with:
           username: ${{ vars.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
       - name: "Build and push image."
         id: build-push-image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@b32b51a8eda65d6793cd0494a773d4f6bcef32dc # v6
         if:
         with:
           context: ${{ matrix.images.context }}
@@ -89,10 +105,8 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           tags: |
-            ${{ matrix.images.image_name }}:latest
-            ghcr.io/${{ matrix.images.image_name }}:latest
-            ${{ matrix.images.image_name }}:${{ github.sha }}
-            ghcr.io/${{ matrix.images.image_name }}:${{ github.sha }}
+            ${{ matrix.images.image_name }}:${{ env.DEFAULT_TAG }}
+            ghcr.io/${{ matrix.images.image_name }}:${{ env.DEFAULT_TAG }}
           platforms: ${{ join(matrix.images.supported_platforms, ',') }}
           labels: |-
             org.opencontainers.image.vendor=${{ github.repository_owner }}
@@ -119,39 +133,40 @@ jobs:
               - linux/arm64
               - linux/arm/v7
               - linux/arm/v8
-              - linux/arm64/v8
           - context: tools/kubectl
             image_name: ${{ github.repository_owner }}/kubectl
             description: "Kubectl is a CLI tool for running commands against Kubernetes clusters."
             supported_platforms:
               - linux/amd64
               - linux/arm64
+              - linux/arm/v7
+              - linux/arm/v8
     outputs:
       digests: ${{ steps.push-image.outputs.digest }}
     steps:
       - name: "Checkout repository."
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
         with:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: "Set up Docker Buildx."
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@6524bf65af31da8d45b59e8c27de4bd072b392f5 # v3
         with:
           platforms: ${{ join(matrix.images.supported_platforms, ',') }}
       - name: "Login: ghcr.io"
-        uses: docker/login-action@v3
+        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: "Login: Docker Hub"
-        uses: docker/login-action@v3
+        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3
         with:
           username: ${{ vars.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
       - name: "Build and push image."
         id: push-image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@b32b51a8eda65d6793cd0494a773d4f6bcef32dc # v6
         with:
           context: ${{ matrix.images.context }}
           file: ${{ matrix.images.context }}/Dockerfile
@@ -160,10 +175,72 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           tags: |
-            ${{ matrix.images.image_name }}:latest
-            ghcr.io/${{ matrix.images.image_name }}:latest
-            ${{ matrix.images.image_name }}:${{ github.sha }}
-            ghcr.io/${{ matrix.images.image_name }}:${{ github.sha }}
+            ${{ matrix.images.image_name }}:${{ env.DEFAULT_TAG }}
+            ghcr.io/${{ matrix.images.image_name }}:${{ env.DEFAULT_TAG }}
+          platforms: ${{ join(matrix.images.supported_platforms, ',') }}
+          labels: |-
+            org.opencontainers.image.vendor=${{ github.repository_owner }}
+            org.opencontainers.image.source=https://github.com/${{ github.repository}}
+            org.opencontainers.image.description=${{ matrix.images.description }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.title=${{ matrix.images.image_name }}
+            org.opencontainers.image.version=${{ github.ref }}
+
+  build-experimental-images:
+    needs: build-base-images
+    if: inputs.build_experimental_images
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        images:
+          - context: tools/opentofu
+            image_name: ${{ github.repository_owner }}/opentofu
+            description: "OpenTofu is an open source IaC tool that allows management of infrastructure as code."
+            supported_platforms:
+              - linux/amd64
+              - linux/arm64
+              - linux/arm/v7
+              - linux/arm/v8
+    outputs:
+      digests: ${{ steps.push-image.outputs.digest }}
+    steps:
+      - name: "Checkout repository."
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: "Set up Docker Buildx."
+        uses: docker/setup-buildx-action@6524bf65af31da8d45b59e8c27de4bd072b392f5 # v3
+        with:
+          platforms: ${{ join(matrix.images.supported_platforms, ',') }}
+      - name: "Login: ghcr.io"
+        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: "Login: Docker Hub"
+        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3
+        with:
+          username: ${{ vars.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: "Build and push image."
+        id: push-image
+        uses: docker/build-push-action@b32b51a8eda65d6793cd0494a773d4f6bcef32dc # v6
+        with:
+          context: ${{ matrix.images.context }}
+          file: ${{ matrix.images.context }}/Dockerfile
+          push: ${{ env.PUSH_IMAGES}}
+          provenance: ${{ env.PROVENANCE }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          tags: |
+            ${{ matrix.images.image_name }}:experimental
+            ghcr.io/${{ matrix.images.image_name }}:experimental
           platforms: ${{ join(matrix.images.supported_platforms, ',') }}
           labels: |-
             org.opencontainers.image.vendor=${{ github.repository_owner }}

@@ -1,0 +1,19 @@
+---
+name: lint
+
+on:
+  pull_request:
+  push:
+    branches: [trunk]
+
+concurrency:
+  group: ${{ github.ref }}-${{ github.workflow }}
+  cancel-in-progress: true
+
+jobs:
+  pre-commit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@cbb722410c2e876e24abbe8de2cc27693e501dcb
+      - uses: actions/setup-python@3fddbee7870211eda9047db10474808be43c71ec
+      - uses: pre-commit/action@576ff52938d158a24ac7e009dfa94b1455e7df99

@@ -1,0 +1,23 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    "config:best-practices",
+    "security:openssf-scorecard",
+    ":disableRateLimiting"
+  ],
+  "assigneesFromCodeOwners": true,
+  "dependencyDashboardTitle": "renovate(bot): Dependency Dashboard",
+  "packageRules": [
+    {
+      "description": "Automatically merge PRs that match select update types.",
+      "matchUpdateTypes": ["minor", "patch", "pin", "digest"],
+      "automerge": true,
+      "automergeType": "pr",
+      "schedule": ["* 12-15 * * *"]
+    }
+  ],
+  "pinDigests": true,
+  "semanticCommits": "enabled",
+  "timezone": "Etc/UTC"
+}
