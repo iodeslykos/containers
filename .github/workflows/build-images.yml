@@ -8,12 +8,8 @@ on:
   schedule:
     - cron: '45 16 * * 4' # Every Thursday at 16:45 UTC.
   push:
-    branches:
-      - 'trunk'
+    branches: ['trunk']
   pull_request:
-    paths:
-      - 'base/**/Dockerfile'
-      - 'tools/**/Dockerfile'
   workflow_dispatch:
     inputs:
       build_experimental_images:
