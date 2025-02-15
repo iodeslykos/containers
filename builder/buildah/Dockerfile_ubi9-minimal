@@ -1,0 +1,60 @@
+FROM redhat/ubi9-minimal:9.5 AS base
+
+ENV USER=outis
+ENV GROUP=outis
+ENV UID=1000
+ENV GID=1000
+
+ENV BUILDAH_ISOLATION=chroot
+ENV CONTAINERS_LOCAL_PATH=/home/${USER}/.local/share/containers
+ENV CONTAINERS_CONFIG_PATH=/home/${USER}/.config/containers
+ENV _CONTAINERS_USERNS_CONFIGURED=""
+
+VOLUME "${CONTAINERS_LOCAL_PATH}" /var/lib/containers
+
+USER 0
+
+COPY --chmod=0644 podman-containers.conf /home/${USER}/.config/containers/containers.conf
+COPY --chmod=0644 containers.conf /etc/containers/containers.conf
+COPY --chmod=0644 registries.conf /etc/containers/registries.conf
+COPY --chmod=0755 entrypoint.sh /home/${USER}/entrypoint.sh
+
+RUN microdnf upgrade -y && \
+    microdnf reinstall -y shadow-utils && \
+    microdnf install -y \
+        podman \
+        jq \
+        skopeo \
+        buildah \
+        crun \
+        bzip2 \
+        --setopt=tsflags=nodocs && \
+    microdnf clean all && \
+    rm -rf /var/cache /var/log/dnf* && \
+    groupadd -g ${GID} ${GROUP} && \
+    useradd -u ${UID} -g ${GID} -ms /bin/bash ${USER} && \
+    usermod --add-subuids 10000-5000 --add-subgids 10000-5000 ${USER} && \
+    # echo ${USER}:10000:5000 > /etc/subuid && \
+    # echo ${USER}:10000:5000 > /etc/subgid && \
+    chown ${UID}:${GID} -R /home/${USER}; \
+    mkdir -p /home/${USER}/.local/share/containers; chown ${UID}:${GID} -R /home/${USER} && \
+    sed -i -e 's/driver = "overlay"/driver = "vfs"/g' \
+        -e 's|^#mount_program|mount_program|g' \
+        -e '/additionalimage.*/a "/var/lib/shared",' \
+        -e 's|^mountopt[[:space:]]*=.*$|mountopt = "nodev,fsync=0"|g' \
+        /etc/containers/storage.conf && \
+    mkdir -p /var/lib/shared/overlay-images \
+        /var/lib/shared/overlay-layers \
+        /var/lib/shared/vfs-images \
+        /var/lib/shared/vfs-layers && \
+    touch /var/lib/shared/overlay-images/images.lock \
+        /var/lib/shared/overlay-layers/layers.lock \
+        /var/lib/shared/vfs-images/images.lock \
+        /var/lib/shared/vfs-layers/layers.lock && \
+    chmod 0755 /usr/bin/fusermount3 && \
+    podman --version
+
+USER ${UID}
+WORKDIR /home/${USER}
+
+ENTRYPOINT ["./entrypoint.sh"]

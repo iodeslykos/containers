@@ -1,0 +1,66 @@
+FROM ghcr.io/iodeslykos/al2023:latest AS builder
+
+ENV TAG_CONMON='v2.1.12'
+ENV TAG_CONMON_RS='v0.6.6'
+ENV TAG_COMMON='v0.41.0'
+ENV TAG_CRUN='1.20'
+ENV TAG_PODMAN='v5.4.0-rc3'
+ENV TAG_LIBSLIRP='v4.9.0'
+ENV TAG_SLIRP4NETNS='v1.3.1'
+
+WORKDIR /tmp
+
+RUN dnf update -y \
+    && dnf install -y --allowerasing \
+      autoconf automake \
+      cni-plugins \
+      git golang golang-github-cpuguy83-md2man gpgme-devel \
+      iptables-nft \
+      libcap-devel libseccomp-devel libtool \
+      meson \
+      rpm-build \
+      systemd-devel \
+      valgrind valgrind-devel \
+      yajl yajl-devel \
+    && dnf clean all \
+    && rm -rf /var/cache /var/log/dnf* \
+    && git config --global advice.detachedHead false
+
+RUN git clone --depth 1 --branch "${TAG_COMMON}" https://github.com/containers/common.git \
+  && git clone --depth 1 --branch "${TAG_CONMON}" https://github.com/containers/conmon.git \
+  && git clone --depth 1 --branch "${TAG_CRUN}" https://github.com/containers/crun.git \
+  && git clone --depth 1 --branch "${TAG_LIBSLIRP}" https://gitlab.freedesktop.org/slirp/libslirp.git \
+  && git clone --depth 1 --branch "${TAG_PODMAN}" https://github.com/containers/podman.git \
+  && git clone --depth 1 --branch "${TAG_SLIRP4NETNS}" https://github.com/rootless-containers/slirp4netns.git
+
+WORKDIR /tmp/podman
+RUN make -j && make install
+
+WORKDIR /tmp/conmon
+RUN make -j && make install
+
+WORKDIR /tmp/crun
+RUN ./autogen.sh && ./configure --prefix=/usr/local && make -j && make install
+
+WORKDIR /tmp/libslirp
+RUN meson build && ninja -C build && ninja -C build install
+
+WORKDIR /tmp/slirp4netns
+RUN ./autogen.sh && ./configure --prefix=/usr/local && make -j && make install
+
+FROM ghcr.io/iodeslykos/al2023:latest AS final
+
+RUN dnf update -y \
+    && dnf install -y --allowerasing \
+      cni-plugins \
+
+      runc \
+    && dnf clean all \
+    && rm -rf /var/cache /var/log/dnf* \
+    && git config --global advice.detachedHead false
+
+COPY --from=builder /usr/local/bin/conmon /usr/local/bin/conmon
+COPY --from=builder /usr/local/bin/crun /usr/local/bin/crun
+COPY --from=builder /usr/local/bin/podman /usr/local/bin/podman
+COPY --from=builder /usr/local/bin/slirp4netns /usr/local/bin/slirp4netns
+COPY --from=builder /usr/local/bin/libslirp.so /usr/local/lib/libslirp.so
