@@ -10,7 +10,8 @@ RUN dnf update -y \
     && dnf install -y --allowerasing \
         ca-certificates curl findutils \
         openssl shadow-utils zsh \
-    && dnf clean all
+    && dnf clean all \
+    && rm -rf /var/cache /var/log/dnf*
 
 RUN groupadd -g ${GID} ${GROUP} \
     && adduser -u ${UID} ${USER} -g ${GROUP}
