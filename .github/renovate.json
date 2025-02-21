@@ -12,7 +12,7 @@
     {
       "description": "Automatically merge PRs that match select update types.",
       "commitMessageExtra": " {{ currentVersion }} -> {{ newVersion }} ",
-      "matchUpdateTypes": ["minor", "patch"],
+      "matchUpdateTypes": ["patch"],
       "automerge": true,
       "automergeType": "pr",
       "schedule": ["* 12-15 * * *"]
@@ -20,7 +20,7 @@
     {
       "description": "Create, but do not merge PRs that match select update types.",
       "commitMessageExtra": " {{ currentVersion }} -> {{ newVersion }} ",
-      "matchUpdateTypes": ["major"],
+      "matchUpdateTypes": ["major", "minor"],
       "automerge": false,
       "schedule": ["* 12-15 * * *"]
     }
