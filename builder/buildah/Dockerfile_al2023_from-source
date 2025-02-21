@@ -11,20 +11,20 @@ ENV TAG_SLIRP4NETNS='v1.3.1'
 WORKDIR /tmp
 
 RUN dnf update -y \
-    && dnf install -y --allowerasing \
-      autoconf automake \
-      cni-plugins \
-      git golang golang-github-cpuguy83-md2man gpgme-devel \
-      iptables-nft \
-      libcap-devel libseccomp-devel libtool \
-      meson \
-      rpm-build \
-      systemd-devel \
-      valgrind valgrind-devel \
-      yajl yajl-devel \
-    && dnf clean all \
-    && rm -rf /var/cache /var/log/dnf* \
-    && git config --global advice.detachedHead false
+  && dnf install -y --allowerasing \
+  autoconf automake \
+  cni-plugins \
+  git golang golang-github-cpuguy83-md2man gpgme-devel \
+  iptables-nft \
+  libcap-devel libseccomp-devel libtool \
+  meson \
+  rpm-build \
+  systemd-devel \
+  valgrind valgrind-devel \
+  yajl yajl-devel \
+  && dnf clean all \
+  && rm -rf /var/cache /var/log/dnf* \
+  && git config --global advice.detachedHead false
 
 RUN git clone --depth 1 --branch "${TAG_COMMON}" https://github.com/containers/common.git \
   && git clone --depth 1 --branch "${TAG_CONMON}" https://github.com/containers/conmon.git \
@@ -51,13 +51,12 @@ RUN ./autogen.sh && ./configure --prefix=/usr/local && make -j && make install
 FROM ghcr.io/iodeslykos/al2023:latest AS final
 
 RUN dnf update -y \
-    && dnf install -y --allowerasing \
-      cni-plugins \
-
-      runc \
-    && dnf clean all \
-    && rm -rf /var/cache /var/log/dnf* \
-    && git config --global advice.detachedHead false
+  && dnf install -y --allowerasing \
+  cni-plugins \
+  runc \
+  && dnf clean all \
+  && rm -rf /var/cache /var/log/dnf* \
+  && git config --global advice.detachedHead false
 
 COPY --from=builder /usr/local/bin/conmon /usr/local/bin/conmon
 COPY --from=builder /usr/local/bin/crun /usr/local/bin/crun
