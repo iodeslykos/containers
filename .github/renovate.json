@@ -12,7 +12,7 @@
     {
       "description": "Automatically merge PRs that match select update types.",
       "commitMessageExtra": " {{ currentVersion }} -> {{ newVersion }} ",
-      "matchUpdateTypes": ["patch"],
+      "matchUpdateTypes": ["patch", "digest", "hash", "lockFileMaintenance"],
       "automerge": true,
       "automergeType": "pr",
       "schedule": ["* 12-15 * * *"]
