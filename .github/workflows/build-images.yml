@@ -6,9 +6,9 @@ concurrency:
 
 on:
   schedule:
-    - cron: '45 16 * * 4' # Every Thursday at 16:45 UTC.
+    - cron: "45 16 * * 4" # Every Thursday at 16:45 UTC.
   push:
-    branches: ['trunk']
+    branches: ["trunk"]
   pull_request:
   workflow_dispatch:
     inputs:
@@ -29,10 +29,10 @@ on:
         default: false
 
 env:
-  DEFAULT_TAG: 'latest'
+  DEFAULT_TAG: "latest"
   PROVENANCE: ${{ inputs.provenance }}
   PUSH_IMAGES: ${{ inputs.push_images || github.ref == 'refs/heads/trunk' }}
-  SHA_SHORT: ''
+  SHA_SHORT: ""
 
 jobs:
   build-base-images:
@@ -70,28 +70,28 @@ jobs:
       digests: ${{ steps.build-push-image.outputs.digest }}
     steps:
       - name: "Checkout repository."
-        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
+        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.0.0
         with:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: "Set up Docker Buildx."
-        uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3
+        uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.0.0
         with:
           platforms: ${{ join(matrix.images.supported_platforms, ',') }}
       - name: "Login: ghcr.io"
-        uses: docker/login-action@184bdaa0721073962dff0199f1fb9940f07167d1 # v3
+        uses: docker/login-action@184bdaa0721073962dff0199f1fb9940f07167d1 # v3.0.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: "Login: Docker Hub"
-        uses: docker/login-action@184bdaa0721073962dff0199f1fb9940f07167d1 # v3
+        uses: docker/login-action@184bdaa0721073962dff0199f1fb9940f07167d1 # v3.0.0
         with:
           username: ${{ vars.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
       - name: "Build and push image."
         id: build-push-image
-        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6
+        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.0.0
         if:
         with:
           context: ${{ matrix.images.context }}
@@ -141,28 +141,28 @@ jobs:
       digests: ${{ steps.push-image.outputs.digest }}
     steps:
       - name: "Checkout repository."
-        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
+        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.0.0
         with:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: "Set up Docker Buildx."
-        uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3
+        uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.0.0
         with:
           platforms: ${{ join(matrix.images.supported_platforms, ',') }}
       - name: "Login: ghcr.io"
-        uses: docker/login-action@184bdaa0721073962dff0199f1fb9940f07167d1 # v3
+        uses: docker/login-action@184bdaa0721073962dff0199f1fb9940f07167d1 # v3.0.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: "Login: Docker Hub"
-        uses: docker/login-action@184bdaa0721073962dff0199f1fb9940f07167d1 # v3
+        uses: docker/login-action@184bdaa0721073962dff0199f1fb9940f07167d1 # v3.0.0
         with:
           username: ${{ vars.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
       - name: "Build and push image."
         id: push-image
-        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6
+        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.0.0
         with:
           context: ${{ matrix.images.context }}
           file: ${{ matrix.images.context }}/Dockerfile
@@ -205,28 +205,28 @@ jobs:
       digests: ${{ steps.push-image.outputs.digest }}
     steps:
       - name: "Checkout repository."
-        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
+        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.0.0
         with:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: "Set up Docker Buildx."
-        uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3
+        uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.0.0
         with:
           platforms: ${{ join(matrix.images.supported_platforms, ',') }}
       - name: "Login: ghcr.io"
-        uses: docker/login-action@184bdaa0721073962dff0199f1fb9940f07167d1 # v3
+        uses: docker/login-action@184bdaa0721073962dff0199f1fb9940f07167d1 # v3.0.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: "Login: Docker Hub"
-        uses: docker/login-action@184bdaa0721073962dff0199f1fb9940f07167d1 # v3
+        uses: docker/login-action@184bdaa0721073962dff0199f1fb9940f07167d1 # v3.0.0
         with:
           username: ${{ vars.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
       - name: "Build and push image."
         id: push-image
-        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6
+        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.0.0
         with:
           context: ${{ matrix.images.context }}
           file: ${{ matrix.images.context }}/Dockerfile
