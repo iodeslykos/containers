@@ -79,19 +79,19 @@ jobs:
         with:
           platforms: ${{ join(matrix.images.supported_platforms, ',') }}
       - name: "Login: ghcr.io"
-        uses: docker/login-action@184bdaa0721073962dff0199f1fb9940f07167d1 # v3.0.0
+        uses: docker/login-action@184bdaa0721073962dff0199f1fb9940f07167d1 # v3.5.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: "Login: Docker Hub"
-        uses: docker/login-action@184bdaa0721073962dff0199f1fb9940f07167d1 # v3.0.0
+        uses: docker/login-action@184bdaa0721073962dff0199f1fb9940f07167d1 # v3.5.0
         with:
           username: ${{ vars.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
       - name: "Build and push image."
         id: build-push-image
-        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.0.0
+        uses: docker/build-push-action@c382f710d39a5bb4e430307530a720f50c2d3318 # v6.0.0
         if:
         with:
           context: ${{ matrix.images.context }}
@@ -150,19 +150,19 @@ jobs:
         with:
           platforms: ${{ join(matrix.images.supported_platforms, ',') }}
       - name: "Login: ghcr.io"
-        uses: docker/login-action@184bdaa0721073962dff0199f1fb9940f07167d1 # v3.0.0
+        uses: docker/login-action@184bdaa0721073962dff0199f1fb9940f07167d1 # v3.5.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: "Login: Docker Hub"
-        uses: docker/login-action@184bdaa0721073962dff0199f1fb9940f07167d1 # v3.0.0
+        uses: docker/login-action@184bdaa0721073962dff0199f1fb9940f07167d1 # v3.5.0
         with:
           username: ${{ vars.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
       - name: "Build and push image."
         id: push-image
-        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.0.0
+        uses: docker/build-push-action@c382f710d39a5bb4e430307530a720f50c2d3318 # v6.0.0
         with:
           context: ${{ matrix.images.context }}
           file: ${{ matrix.images.context }}/Dockerfile
@@ -214,19 +214,19 @@ jobs:
         with:
           platforms: ${{ join(matrix.images.supported_platforms, ',') }}
       - name: "Login: ghcr.io"
-        uses: docker/login-action@184bdaa0721073962dff0199f1fb9940f07167d1 # v3.0.0
+        uses: docker/login-action@184bdaa0721073962dff0199f1fb9940f07167d1 # v3.5.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: "Login: Docker Hub"
-        uses: docker/login-action@184bdaa0721073962dff0199f1fb9940f07167d1 # v3.0.0
+        uses: docker/login-action@184bdaa0721073962dff0199f1fb9940f07167d1 # v3.5.0
         with:
           username: ${{ vars.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
       - name: "Build and push image."
         id: push-image
-        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.0.0
+        uses: docker/build-push-action@c382f710d39a5bb4e430307530a720f50c2d3318 # v6.0.0
         with:
           context: ${{ matrix.images.context }}
           file: ${{ matrix.images.context }}/Dockerfile
