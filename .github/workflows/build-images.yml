@@ -46,6 +46,7 @@ jobs:
         include:
           - context: base/al2023
             file: base/al2023/Dockerfile
+            smoke_tag: base-al2023
             image_name: ${{ github.repository_owner }}/al2023
             description: "Amazon Linux 2023"
             platforms: "linux/amd64,linux/arm64"
@@ -53,6 +54,7 @@ jobs:
             version_tags: "2023.10.20260202.2,2023.10"
           - context: base/alpine
             file: base/alpine/Dockerfile
+            smoke_tag: base-alpine
             image_name: ${{ github.repository_owner }}/alpine
             description: "Alpine Linux"
             platforms: "linux/amd64,linux/arm64,linux/arm/v7"
@@ -60,6 +62,7 @@ jobs:
             version_tags: "3.23.3,3.23"
           - context: base/debian
             file: base/debian/Dockerfile
+            smoke_tag: base-debian
             image_name: ${{ github.repository_owner }}/debian-slim
             description: "Debian Linux (Slim)"
             platforms: "linux/amd64,linux/arm64,linux/arm/v7"
@@ -67,6 +70,7 @@ jobs:
             version_tags: "13.3-slim,13-slim,bookworm-slim"
           - context: tools/opentofu
             file: tools/opentofu/Dockerfile
+            smoke_tag: tools-opentofu
             image_name: ${{ github.repository_owner }}/opentofu
             description: "OpenTofu is an open source IaC tool that allows management of infrastructure as code."
             platforms: "linux/amd64,linux/arm64"
@@ -74,6 +78,7 @@ jobs:
             version_tags: "1.10.0,1.10"
           - context: tools/kubectl
             file: tools/kubectl/Dockerfile
+            smoke_tag: tools-kubectl
             image_name: ${{ github.repository_owner }}/kubectl
             description: "Kubectl is a CLI tool for running commands against Kubernetes clusters."
             platforms: "linux/amd64,linux/arm64"
@@ -81,6 +86,7 @@ jobs:
             version_tags: "1.31.2,1.31"
           - context: tools/opentofu
             file: tools/opentofu/Dockerfile_experimental
+            smoke_tag: tools-opentofu-experimental
             image_name: ${{ github.repository_owner }}/opentofu
             description: "OpenTofu experimental build."
             platforms: "linux/amd64,linux/arm64"
@@ -179,7 +185,7 @@ jobs:
           push: false
           load: true
           platforms: linux/amd64
-          tags: local/smoke:${{ replace(matrix.context, '/', '-') }}
+          tags: local/smoke:${{ matrix.smoke_tag }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -188,7 +194,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          smoke_tag="local/smoke:${{ replace(matrix.context, '/', '-') }}"
+          smoke_tag="local/smoke:${{ matrix.smoke_tag }}"
           image_name="${{ matrix.image_name }}"
 
           case "${image_name}" in
