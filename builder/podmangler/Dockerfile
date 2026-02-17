@@ -1,4 +1,5 @@
-FROM fedora:rawhide AS base
+# hadolint ignore=DL3007
+FROM ghcr.io/iodeslykos/debian:latest AS base
 
 ENV USER=outis
 ENV GROUP=outis
@@ -6,57 +7,72 @@ ENV UID=1000
 ENV GID=1000
 
 ENV BUILDAH_ISOLATION=chroot
+ENV _CONTAINERS_USERNS_CONFIGURED=""
 ENV CONTAINERS_LOCAL_PATH=/home/${USER}/.local/share/containers
 ENV CONTAINERS_CONFIG_PATH=/home/${USER}/.config/containers
-ENV _CONTAINERS_USERNS_CONFIGURED=""
+ENV XDG_RUNTIME_DIR=/tmp/run-${UID}
+ENV DEBIAN_FRONTEND=noninteractive
 
-VOLUME "${CONTAINERS_LOCAL_PATH}" /var/lib/containers
+VOLUME "${CONTAINERS_LOCAL_PATH}"
 
-RUN dnf update -y \
-    && dnf install -y --allowerasing \
-      buildah bzip2 \
-      catatonit containers-common-extra crun \
-      dumb-init \
+# hadolint ignore=DL3008
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+      binfmt-support \
+      buildah \
+      ca-certificates \
+      containernetworking-plugins \
+      crun \
+      curl \
       fuse-overlayfs \
+      git \
       jq \
-      podman podman-docker podman-remote podman-tui \
+      openssl \
+      passt \
+      podman \
+      qemu-user-static \
       skopeo \
-      --setopt=tsflags=nodocs \
-    # Annoying bug that took two days to figure out.
-    && dnf reinstall -y shadow-utils \
-    && dnf clean all \
-    && rm -rf /var/cache /var/log/dnf* \
-    && groupadd -g ${GID} ${GROUP} \
-    && useradd -u ${UID} -g ${GROUP} -ms /bin/bash ${USER} \
-    && touch /etc/subuid /etc/subgid \
-    && chmod g=u /etc/subuid /etc/subgid \
-    && usermod --add-subuids 10000-165536 --add-subgids 10000-165536 outis
+      slirp4netns \
+      uidmap \
+      yq \
+    && update-ca-certificates \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
-    # COPY --chmod=0644 containers.conf        /etc/containers/containers.conf
-    COPY --chmod=0644 registries.conf        /etc/containers/registries.conf
-    COPY --chmod=0644 podman-containers.conf /etc/containers/podman-containers.conf
-    # COPY --chmod=0644 containers.conf        ${CONTAINERS_CONFIG_PATH}/containers.conf
-    COPY --chmod=0644 registries.conf        ${CONTAINERS_CONFIG_PATH}/registries.conf
-    COPY --chmod=0644 podman-containers.conf ${CONTAINERS_CONFIG_PATH}/podman-containers.conf
-    COPY --chmod=0755 entrypoint.sh          /home/${USER}/entrypoint.sh
+RUN set -eux; \
+    if grep -q "^${USER}:" /etc/subuid; then \
+      sed -i "s/^${USER}:.*/${USER}:100000:65536/" /etc/subuid; \
+    else \
+      echo "${USER}:100000:65536" >> /etc/subuid; \
+    fi; \
+    if grep -q "^${USER}:" /etc/subgid; then \
+      sed -i "s/^${USER}:.*/${USER}:100000:65536/" /etc/subgid; \
+    else \
+      echo "${USER}:100000:65536" >> /etc/subgid; \
+    fi
 
-RUN chmod +x /home/${USER}/entrypoint.sh && \
-    mkdir -p "${CONTAINERS_LOCAL_PATH}"/storage/libpod && \
-    chown -R ${USER}:${GROUP} /home/${USER} && \
-    chmod 0755 /usr/bin/fusermount3 && \
-    mkdir -p /var/lib/shared/vfs-images \
-             /var/lib/shared/vfs-layers \
-             /var/lib/shared/overlay-images \
-             /var/lib/shared/overlay-layers \
-    && \
-    touch /var/lib/shared/vfs-images/images.lock \
-          /var/lib/shared/vfs-layers/layers.lock \
-          /var/lib/shared/overlay-images/images.lock \
-          /var/lib/shared/overlay-layers/layers.lock \
-    && \
-    buildah --version && \
-    podman --version && \
-    skopeo --version
+COPY --chmod=0644 config/containers.conf /etc/containers/containers.conf
+COPY --chmod=0644 config/storage.conf /etc/containers/storage.conf
+COPY --chmod=0644 config/registries.conf /etc/containers/registries.conf
+COPY --chown=outis:outis --chmod=0644 config/containers.conf ${CONTAINERS_CONFIG_PATH}/containers.conf
+COPY --chown=outis:outis --chmod=0644 config/storage.conf ${CONTAINERS_CONFIG_PATH}/storage.conf
+COPY --chown=outis:outis --chmod=0644 config/registries.conf ${CONTAINERS_CONFIG_PATH}/registries.conf
+COPY --chown=outis:outis --chmod=0755 entrypoint.sh /home/${USER}/entrypoint.sh
+
+RUN set -eux; \
+    mkdir -p "${XDG_RUNTIME_DIR}" \
+             /home/${USER}/.config \
+             /home/${USER}/.config/containers \
+             "${CONTAINERS_LOCAL_PATH}/storage/libpod"; \
+    chmod 0700 "${XDG_RUNTIME_DIR}"; \
+    chmod 0755 /home/${USER}/.config /home/${USER}/.config/containers; \
+    chown -R "${UID}:${GID}" /home/${USER} "${XDG_RUNTIME_DIR}" "${CONTAINERS_LOCAL_PATH}"; \
+    chmod 0755 /usr/bin/fusermount3; \
+    buildah --version; \
+    podman --version; \
+    skopeo --version; \
+    qemu-aarch64-static --version; \
+    qemu-x86_64-static --version
 
 USER ${USER}
 WORKDIR /home/${USER}

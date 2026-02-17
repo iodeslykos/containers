@@ -1,94 +1,84 @@
 # podmangler
 
-`podmangler` is a custom-built container intended for use in CI/CD pipelines that cobbles together `podman`, `buildah`, `skopeo`, and `qemu` for building, running, and managing multi-arch containers.
+`podmangler` is a rootless-first Podman-in-Podman build image based on `ghcr.io/iodeslykos/debian:latest`.
 
-Additionally, it contains tools like `jq`, `yq`, `curl`, `git`, and `openssl` for general utility.
+It provides:
+- Rootless `podman`, `buildah`, `skopeo`
+- Multi-arch support tooling (`qemu-aarch64-static`, `qemu-x86_64-static`)
+- CI utilities (`curl`, `git`, `jq`, `yq`, `openssl`)
 
-It is rootless and meant to be run by a rootless container runtime like `podman` or `docker`, ensuring security while enabling magical things like container-in-container operations and container builds on Kubernetes.
+## Directory Layout
 
-> [!WARNING]
-> `--cap-add SYS_ADMIN` is required for OCI runtime to perform administrative tasks, like mounting filesystems within the container.
-> While containers with this capability can still be rootless with proper daemon configuration, there are security implications as it permits operations that would otherwise be restricted.
+- `Dockerfile`: image definition
+- `entrypoint.sh`: runtime bootstrap
+- `config/`: runtime config for containers/podman/storage
+- `examples/containerfiles/`: example Containerfiles (Jenkins controller, Jenkins agent, utility)
+- `examples/modes/`: executable workflows for common rootless build/publish modes
 
-> [!CAUTION]
-> Using `--privileged` flag is not recommended. If used, you will be ridiculed by your peers and shunned by the security-minded, computer-loving community.
+## Rootless Runtime Baseline
 
-## Usage
+The image runs as user `outis` (UID/GID `1000`) with rootless storage (`vfs`) to maximize compatibility across containerized CI environments.
 
-There are multiple ways to use this image!
+Recommended runtime mode for reliability:
+- `--privileged`
 
-1. Interactive session:
+Best-effort reduced-permission mode (runtime-dependent):
+- `--cap-add SYS_ADMIN`
+- `--device /dev/fuse`
+- `--device /dev/net/tun`
+- `--security-opt seccomp=unconfined`
+- `--security-opt apparmor=unconfined`
+
+## Build The Image
 
 ```bash
-docker run --rm -it ghcr.io/iodeslykos/podmangler:latest
+docker build -t podmangler:test ./builder/podmangler
 ```
 
-Running with this method will start an interactive shell session where you can then run commands as needed.
+## Run Modes
 
-2. Commands direct to `podman run`:
-
-This method allows you to run a series of commands directly without starting an interactive session.
+### 1) Rootless Podman build (Jenkins controller)
 
 ```bash
-# Run container with volume mounts for Containerfile, secrets, and config.
-docker run --rm -it \
-  -v /path/to/your/Containerfile:/tmp \
-  -v /path/to/your/config:/config \
-  -v /path/to/your/secrets:/secrets \
-  ghcr.io/iodeslykos/podmangler:latest \
-  # Commands to run inside pod.
-  "export REGISTRY_AUTH_FILE=/secrets/auth.json && \
-  podman login ghcr.io && \
-  skopeo login ghcr.io && \
-  podman build <context> -f /tmp/Containerfile -t <image-name>:<tag> && \
-  skopeo copy oci:<image-name>:<tag> ghcr.io/<image-name>:<tag>"
+docker run --rm -it --privileged \
+  -v "$PWD":/workspace \
+  podmangler:test \
+  /workspace/builder/podmangler/examples/modes/01_podman_rootless_jenkins.sh \
+  /workspace ghcr.io/example/jenkins-controller:dev
 ```
 
-3. Kubernetes:
+### 2) Rootless Buildah build (Jenkins inbound agent)
 
-Run on Kubernetes as a Pod, Job, or CronJob.
-
-This example is a Job that matches the example shown in the previous method. Same end result, just uglier as YAML is wont to be.
-
-```yaml
-apiVersion: v1
-kind: Pod
-metadata:
-  name: podmangler
-spec:
-  containers:
-  - name: podmangler
-    image: ghcr.io/iodeslykos/podmangler:latest
-    securityContext:
-      capabilities:
-        add:
-          - SYS_ADMIN
-    command:
-      - |
-        export REGISTRY_AUTH_FILE=/secrets/auth.json && \
-        podman login ghcr.io && \
-        skopeo login ghcr.io && \
-        podman build <context> -f /tmp/Containerfile -t <image-name>:<tag> && \
-        skopeo copy oci:<image-name>:<tag> ghcr.io/<image-name>:<tag>
-    volumeMounts:
-      - name: containerfile
-        mountPath: /tmp
-      - name: config
-        mountPath: /config
-      - name: secrets
-        mountPath: /secrets
-  volumes:
-    - name: containerfile
-      hostPath:
-        path: /path/to/your/Containerfile   # Must be a file on the host.
-        type: File
-    - name: config
-      hostPath:
-        path: /path/to/your/config          # Must be a directory on the host.
-        type: Directory
-    - name: secrets
-      hostPath:
-        path: /path/to/your/secrets         # Must be a directory on the host.
-        type: Directory
-  restartPolicy: Never
+```bash
+docker run --rm -it --privileged \
+  -v "$PWD":/workspace \
+  podmangler:test \
+  /workspace/builder/podmangler/examples/modes/02_buildah_rootless_jenkins.sh \
+  /workspace ghcr.io/example/jenkins-agent:dev
 ```
+
+### 3) Rootless Podman multi-arch manifest build (utility image)
+
+```bash
+docker run --rm -it --privileged \
+  -v "$PWD":/workspace \
+  podmangler:test \
+  /workspace/builder/podmangler/examples/modes/03_podman_multiarch_manifest.sh \
+  /workspace ghcr.io/example/utility dev
+```
+
+### 4) Publish with skopeo
+
+```bash
+docker run --rm -it --privileged \
+  -v "$PWD":/workspace \
+  podmangler:test \
+  /workspace/builder/podmangler/examples/modes/04_skopeo_publish.sh \
+  localhost/jenkins-controller:dev \
+  docker://ghcr.io/example/jenkins-controller:dev
+```
+
+## Notes
+
+- If your environment uses TLS interception, inject trusted CA certificates so Podman/Skopeo pulls and pushes verify correctly.
+- Cross-arch execution requires binfmt support from the host/runtime.
