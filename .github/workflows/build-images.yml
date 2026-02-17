@@ -9,6 +9,8 @@ on:
     - cron: "45 16 * * 4" # Every Thursday at 16:45 UTC.
   push:
     branches: ["trunk"]
+    tags:
+      - "v*.*.*"
   pull_request:
   workflow_dispatch:
     inputs:
@@ -27,16 +29,10 @@ on:
         type: boolean
         required: true
         default: false
-      release_version:
-        description: "Optional release version tag (e.g. 1.2.3)."
-        type: string
-        required: false
-        default: ""
 
 env:
-  PROVENANCE: ${{ inputs.provenance }}
-  PUSH_IMAGES: ${{ inputs.push_images || github.ref == 'refs/heads/trunk' }}
-  RELEASE_VERSION: ${{ inputs.release_version }}
+  PROVENANCE: ${{ inputs.provenance || false }}
+  PUSH_IMAGES: ${{ inputs.push_images || github.ref == 'refs/heads/trunk' || startsWith(github.ref, 'refs/tags/') }}
 
 jobs:
   build-images:
@@ -54,36 +50,42 @@ jobs:
             description: "Amazon Linux 2023"
             platforms: "linux/amd64,linux/arm64"
             channel: stable
+            version_tags: "2023.10.20260202.2,2023.10"
           - context: base/alpine
             file: base/alpine/Dockerfile
             image_name: ${{ github.repository_owner }}/alpine
             description: "Alpine Linux"
             platforms: "linux/amd64,linux/arm64,linux/arm/v7"
             channel: stable
+            version_tags: "3.23.3,3.23"
           - context: base/debian
             file: base/debian/Dockerfile
-            image_name: ${{ github.repository_owner }}/debian
+            image_name: ${{ github.repository_owner }}/debian-slim
             description: "Debian Linux (Slim)"
             platforms: "linux/amd64,linux/arm64,linux/arm/v7"
             channel: stable
+            version_tags: "13.3-slim,13-slim,bookworm-slim"
           - context: tools/opentofu
             file: tools/opentofu/Dockerfile
             image_name: ${{ github.repository_owner }}/opentofu
             description: "OpenTofu is an open source IaC tool that allows management of infrastructure as code."
             platforms: "linux/amd64,linux/arm64"
             channel: stable
+            version_tags: "1.10.0,1.10"
           - context: tools/kubectl
             file: tools/kubectl/Dockerfile
             image_name: ${{ github.repository_owner }}/kubectl
             description: "Kubectl is a CLI tool for running commands against Kubernetes clusters."
             platforms: "linux/amd64,linux/arm64"
             channel: stable
+            version_tags: "1.31.2,1.31"
           - context: tools/opentofu
             file: tools/opentofu/Dockerfile_experimental
             image_name: ${{ github.repository_owner }}/opentofu
             description: "OpenTofu experimental build."
             platforms: "linux/amd64,linux/arm64"
             channel: experimental
+            version_tags: ""
 
     steps:
       - name: "Checkout repository."
@@ -93,44 +95,72 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: "Skip experimental image on non-dispatch or disabled dispatch input."
-        if: ${{ matrix.channel == 'experimental' && !inputs.build_experimental_images }}
+        if: ${{ matrix.channel == 'experimental' && (github.event_name != 'workflow_dispatch' || !inputs.build_experimental_images) }}
         run: |
           echo "Skipping experimental image build by configuration."
           exit 0
 
       - name: "Set up Docker Buildx."
-        if: ${{ matrix.channel != 'experimental' || inputs.build_experimental_images }}
+        if: ${{ matrix.channel != 'experimental' || (github.event_name == 'workflow_dispatch' && inputs.build_experimental_images) }}
         uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
         with:
           platforms: ${{ matrix.platforms }}
 
       - name: "Compute image tags."
-        if: ${{ matrix.channel != 'experimental' || inputs.build_experimental_images }}
+        if: ${{ matrix.channel != 'experimental' || (github.event_name == 'workflow_dispatch' && inputs.build_experimental_images) }}
         id: tags
         run: |
           set -euo pipefail
 
           short_sha="${GITHUB_SHA::12}"
           image_name="${{ matrix.image_name }}"
-          release_version="${{ env.RELEASE_VERSION }}"
+          version_tags_csv="${{ matrix.version_tags }}"
+          release_version=""
           channel="${{ matrix.channel }}"
+          is_trunk=false
+
+          if [ "${GITHUB_REF}" = "refs/heads/trunk" ]; then
+            is_trunk=true
+          fi
+          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+            release_version="${GITHUB_REF_NAME}"
+          fi
+
+          version_tags=()
+          if [ -n "${version_tags_csv}" ]; then
+            IFS=',' read -r -a raw_version_tags <<< "${version_tags_csv}"
+            for version_tag in "${raw_version_tags[@]}"; do
+              version_tag="$(echo "${version_tag}" | xargs)"
+              if [ -n "${version_tag}" ]; then
+                version_tags+=("${version_tag}")
+              fi
+            done
+          fi
 
           tags=()
           for registry_prefix in "" "ghcr.io/"; do
             base="${registry_prefix}${image_name}"
 
             if [ "${channel}" = "stable" ]; then
-              tags+=("${base}:latest")
+              if [ "${is_trunk}" = true ]; then
+                tags+=("${base}:latest")
+              fi
               tags+=("${base}:sha-${short_sha}")
+              for version_tag in "${version_tags[@]}"; do
+                tags+=("${base}:${version_tag}")
+              done
               if [ -n "${release_version}" ]; then
                 tags+=("${base}:${release_version}")
+                if [[ "${release_version}" =~ ^v([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
+                  major="${BASH_REMATCH[1]}"
+                  minor="${BASH_REMATCH[2]}"
+                  tags+=("${base}:v${major}")
+                  tags+=("${base}:v${major}.${minor}")
+                fi
               fi
             else
               tags+=("${base}:experimental")
               tags+=("${base}:experimental-sha-${short_sha}")
-              if [ -n "${release_version}" ]; then
-                tags+=("${base}:${release_version}-experimental")
-              fi
             fi
           done
 
@@ -140,8 +170,44 @@ jobs:
             echo "EOF"
           } >> "${GITHUB_OUTPUT}"
 
+      - name: "Build smoke image (linux/amd64)."
+        if: ${{ matrix.channel != 'experimental' || (github.event_name == 'workflow_dispatch' && inputs.build_experimental_images) }}
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.file }}
+          push: false
+          load: true
+          platforms: linux/amd64
+          tags: local/smoke:${{ replace(matrix.context, '/', '-') }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: "Smoke test image."
+        if: ${{ matrix.channel != 'experimental' || (github.event_name == 'workflow_dispatch' && inputs.build_experimental_images) }}
+        run: |
+          set -euo pipefail
+
+          smoke_tag="local/smoke:${{ replace(matrix.context, '/', '-') }}"
+          image_name="${{ matrix.image_name }}"
+
+          case "${image_name}" in
+            */al2023|*/alpine|*/debian-slim)
+              docker run --rm --entrypoint /bin/sh "${smoke_tag}" -lc "zsh --version >/dev/null"
+              ;;
+            */kubectl)
+              docker run --rm "${smoke_tag}" version --client >/dev/null
+              ;;
+            */opentofu)
+              docker run --rm "${smoke_tag}" version >/dev/null
+              ;;
+            *)
+              docker run --rm "${smoke_tag}" --help >/dev/null
+              ;;
+          esac
+
       - name: "Login: ghcr.io"
-        if: ${{ env.PUSH_IMAGES == 'true' && (matrix.channel != 'experimental' || inputs.build_experimental_images) }}
+        if: ${{ env.PUSH_IMAGES == 'true' && (matrix.channel != 'experimental' || (github.event_name == 'workflow_dispatch' && inputs.build_experimental_images)) }}
         uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
         with:
           registry: ghcr.io
@@ -149,14 +215,14 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: "Login: Docker Hub"
-        if: ${{ env.PUSH_IMAGES == 'true' && (matrix.channel != 'experimental' || inputs.build_experimental_images) }}
+        if: ${{ env.PUSH_IMAGES == 'true' && (matrix.channel != 'experimental' || (github.event_name == 'workflow_dispatch' && inputs.build_experimental_images)) }}
         uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
         with:
           username: ${{ vars.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: "Build and push image."
-        if: ${{ matrix.channel != 'experimental' || inputs.build_experimental_images }}
+        if: ${{ matrix.channel != 'experimental' || (github.event_name == 'workflow_dispatch' && inputs.build_experimental_images) }}
         uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
         with:
           context: ${{ matrix.context }}
@@ -173,4 +239,4 @@ jobs:
             org.opencontainers.image.description=${{ matrix.description }}
             org.opencontainers.image.revision=${{ github.sha }}
             org.opencontainers.image.title=${{ matrix.image_name }}
-            org.opencontainers.image.version=${{ env.RELEASE_VERSION != '' && env.RELEASE_VERSION || github.sha }}
+            org.opencontainers.image.version=${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || github.sha }}
