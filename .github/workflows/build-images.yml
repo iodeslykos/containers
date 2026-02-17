@@ -8,7 +8,7 @@ on:
   schedule:
     - cron: "45 16 * * 4" # Every Thursday at 16:45 UTC.
   push:
-    branches: ["trunk"]
+    branches: ["main"]
     tags:
       - "v*.*.*"
   pull_request:
@@ -32,7 +32,7 @@ on:
 
 env:
   PROVENANCE: ${{ inputs.provenance || false }}
-  PUSH_IMAGES: ${{ inputs.push_images || github.ref == 'refs/heads/trunk' || startsWith(github.ref, 'refs/tags/') }}
+  PUSH_IMAGES: ${{ inputs.push_images || github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/') }}
 
 jobs:
   build-images:
@@ -84,6 +84,14 @@ jobs:
             platforms: "linux/amd64,linux/arm64"
             channel: stable
             version_tags: "1.31.2,1.31"
+          - context: builder/podmangler
+            file: builder/podmangler/Dockerfile
+            smoke_tag: builder-podmangler
+            image_name: ${{ github.repository_owner }}/podmangler
+            description: "Rootless Podman-in-Podman builder image."
+            platforms: "linux/amd64,linux/arm64"
+            channel: stable
+            version_tags: "0.0.1"
           - context: tools/opentofu
             file: tools/opentofu/Dockerfile_experimental
             smoke_tag: tools-opentofu-experimental
@@ -133,7 +141,7 @@ jobs:
           debian_slim_version_tags="${{ steps.base_versions.outputs.debian_slim_version_tags }}"
           release_version=""
           channel="${{ matrix.channel }}"
-          is_trunk=false
+          is_main=false
 
           if [ -z "${version_tags_csv}" ]; then
             case "${image_name}" in
@@ -149,8 +157,8 @@ jobs:
             esac
           fi
 
-          if [ "${GITHUB_REF}" = "refs/heads/trunk" ]; then
-            is_trunk=true
+          if [ "${GITHUB_REF}" = "refs/heads/main" ]; then
+            is_main=true
           fi
           if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
             release_version="${GITHUB_REF_NAME}"
@@ -172,7 +180,7 @@ jobs:
             base="${registry_prefix}${image_name}"
 
             if [ "${channel}" != "experimental" ]; then
-              if [ "${is_trunk}" = true ]; then
+              if [ "${is_main}" = true ]; then
                 tags+=("${base}:latest")
               fi
               tags+=("${base}:sha-${short_sha}")
@@ -232,6 +240,9 @@ jobs:
               ;;
             */kubectl)
               docker run --rm "${smoke_tag}" version --client >/dev/null
+              ;;
+            */podmangler)
+              docker run --rm --entrypoint /bin/sh "${smoke_tag}" -c "podman --version"
               ;;
             */opentofu)
               docker run --rm "${smoke_tag}" version >/dev/null
