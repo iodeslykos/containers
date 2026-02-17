@@ -1,4 +1,4 @@
-FROM ghcr.io/iodeslykos/alpine:3.23.3@sha256:b3a77faadae27b7841da8215d8d9696c28107ae0f1de0c7a3951f63569a2cb53 AS base
+FROM ghcr.io/iodeslykos/alpine:3.23.3@sha256:43f66b4b76ad25b2b4dad0a762b6d618356c270afab3fd1b2fe3ba1aa361c94a AS base
 
 LABEL org.opencontainers.image.title="opentofu"
 LABEL org.opencontainers.image.authors="iodeslykos <42@iodeslykos.com>"
