@@ -9,6 +9,8 @@ on:
     - cron: "45 16 * * 4" # Every Thursday at 16:45 UTC.
   push:
     branches: ["trunk"]
+    tags:
+      - "v*.*.*"
   pull_request:
   workflow_dispatch:
     inputs:
@@ -29,13 +31,11 @@ on:
         default: false
 
 env:
-  DEFAULT_TAG: "latest"
-  PROVENANCE: ${{ inputs.provenance }}
-  PUSH_IMAGES: ${{ inputs.push_images || github.ref == 'refs/heads/trunk' }}
-  SHA_SHORT: ""
+  PROVENANCE: ${{ inputs.provenance || false }}
+  PUSH_IMAGES: ${{ inputs.push_images || github.ref == 'refs/heads/trunk' || startsWith(github.ref, 'refs/tags/') }}
 
 jobs:
-  build-base-images:
+  build-images:
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -43,205 +43,235 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        images:
+        include:
           - context: base/al2023
+            file: base/al2023/Dockerfile
+            smoke_tag: base-al2023
             image_name: ${{ github.repository_owner }}/al2023
             description: "Amazon Linux 2023"
-            supported_platforms:
-              - linux/amd64
-              - linux/arm64
+            platforms: "linux/amd64,linux/arm64"
+            channel: stable
+            version_tags: ""
           - context: base/alpine
+            file: base/alpine/Dockerfile
+            smoke_tag: base-alpine
             image_name: ${{ github.repository_owner }}/alpine
             description: "Alpine Linux"
-            supported_platforms:
-              - linux/amd64
-              - linux/arm64
-              - linux/arm/v7
-              - linux/arm/v8
+            platforms: "linux/amd64,linux/arm64,linux/arm/v7"
+            channel: stable
+            version_tags: ""
           - context: base/debian
-            image_name: ${{ github.repository_owner }}/debian
+            file: base/debian/Dockerfile
+            smoke_tag: base-debian
+            image_name: ${{ github.repository_owner }}/debian-slim
             description: "Debian Linux (Slim)"
-            supported_platforms:
-              - linux/amd64
-              - linux/arm64
-              - linux/arm/v7
-              - linux/arm/v8
-    outputs:
-      digests: ${{ steps.build-push-image.outputs.digest }}
+            platforms: "linux/amd64,linux/arm64,linux/arm/v7"
+            channel: stable
+            version_tags: ""
+          - context: tools/opentofu
+            file: tools/opentofu/Dockerfile
+            smoke_tag: tools-opentofu
+            image_name: ${{ github.repository_owner }}/opentofu
+            description: "OpenTofu is an open source IaC tool that allows management of infrastructure as code."
+            platforms: "linux/amd64,linux/arm64"
+            channel: stable
+            version_tags: "1.10.0,1.10"
+          - context: tools/kubectl
+            file: tools/kubectl/Dockerfile
+            smoke_tag: tools-kubectl
+            image_name: ${{ github.repository_owner }}/kubectl
+            description: "Kubectl is a CLI tool for running commands against Kubernetes clusters."
+            platforms: "linux/amd64,linux/arm64"
+            channel: stable
+            version_tags: "1.31.2,1.31"
+          - context: tools/opentofu
+            file: tools/opentofu/Dockerfile_experimental
+            smoke_tag: tools-opentofu-experimental
+            image_name: ${{ github.repository_owner }}/opentofu
+            description: "OpenTofu experimental build."
+            platforms: "linux/amd64,linux/arm64"
+            channel: experimental
+            version_tags: ""
+
     steps:
       - name: "Checkout repository."
+        if: ${{ matrix.channel != 'experimental' || (github.event_name == 'workflow_dispatch' && inputs.build_experimental_images) }}
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: "Load base image version tags."
+        if: ${{ matrix.channel != 'experimental' || (github.event_name == 'workflow_dispatch' && inputs.build_experimental_images) }}
+        id: base_versions
+        run: |
+          set -euo pipefail
+          source versions/base-images.env
+          {
+            echo "al2023_version_tags=${AL2023_VERSION_TAGS}"
+            echo "alpine_version_tags=${ALPINE_VERSION_TAGS}"
+            echo "debian_slim_version_tags=${DEBIAN_SLIM_VERSION_TAGS}"
+          } >> "${GITHUB_OUTPUT}"
+
       - name: "Set up Docker Buildx."
+        if: ${{ matrix.channel != 'experimental' || (github.event_name == 'workflow_dispatch' && inputs.build_experimental_images) }}
         uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
         with:
-          platforms: ${{ join(matrix.images.supported_platforms, ',') }}
+          platforms: ${{ matrix.platforms }}
+
+      - name: "Compute image tags."
+        if: ${{ matrix.channel != 'experimental' || (github.event_name == 'workflow_dispatch' && inputs.build_experimental_images) }}
+        id: tags
+        run: |
+          set -euo pipefail
+
+          short_sha="${GITHUB_SHA::12}"
+          image_name="${{ matrix.image_name }}"
+          version_tags_csv="${{ matrix.version_tags }}"
+          al2023_version_tags="${{ steps.base_versions.outputs.al2023_version_tags }}"
+          alpine_version_tags="${{ steps.base_versions.outputs.alpine_version_tags }}"
+          debian_slim_version_tags="${{ steps.base_versions.outputs.debian_slim_version_tags }}"
+          release_version=""
+          channel="${{ matrix.channel }}"
+          is_trunk=false
+
+          if [ -z "${version_tags_csv}" ]; then
+            case "${image_name}" in
+              */al2023)
+                version_tags_csv="${al2023_version_tags}"
+                ;;
+              */alpine)
+                version_tags_csv="${alpine_version_tags}"
+                ;;
+              */debian-slim)
+                version_tags_csv="${debian_slim_version_tags}"
+                ;;
+            esac
+          fi
+
+          if [ "${GITHUB_REF}" = "refs/heads/trunk" ]; then
+            is_trunk=true
+          fi
+          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+            release_version="${GITHUB_REF_NAME}"
+          fi
+
+          version_tags=()
+          if [ -n "${version_tags_csv}" ]; then
+            IFS=',' read -r -a raw_version_tags <<< "${version_tags_csv}"
+            for version_tag in "${raw_version_tags[@]}"; do
+              version_tag="$(echo "${version_tag}" | xargs)"
+              if [ -n "${version_tag}" ]; then
+                version_tags+=("${version_tag}")
+              fi
+            done
+          fi
+
+          tags=()
+          for registry_prefix in "" "ghcr.io/"; do
+            base="${registry_prefix}${image_name}"
+
+            if [ "${channel}" != "experimental" ]; then
+              if [ "${is_trunk}" = true ]; then
+                tags+=("${base}:latest")
+              fi
+              tags+=("${base}:sha-${short_sha}")
+              for version_tag in "${version_tags[@]}"; do
+                tags+=("${base}:${version_tag}")
+              done
+              if [ -n "${release_version}" ]; then
+                tags+=("${base}:${release_version}")
+                if [[ "${release_version}" =~ ^v([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
+                  major="${BASH_REMATCH[1]}"
+                  minor="${BASH_REMATCH[2]}"
+                  tags+=("${base}:v${major}")
+                  tags+=("${base}:v${major}.${minor}")
+                fi
+              fi
+            else
+              tags+=("${base}:experimental")
+              tags+=("${base}:experimental-sha-${short_sha}")
+            fi
+          done
+
+          if [ ${#tags[@]} -eq 0 ]; then
+            echo "ERROR: No tags generated for ${image_name}" >&2
+            exit 1
+          fi
+
+          {
+            echo "tags<<EOF"
+            printf '%s\n' "${tags[@]}"
+            echo "EOF"
+          } >> "${GITHUB_OUTPUT}"
+
+      - name: "Build smoke image (linux/amd64)."
+        if: ${{ matrix.channel != 'experimental' || (github.event_name == 'workflow_dispatch' && inputs.build_experimental_images) }}
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.file }}
+          push: false
+          load: true
+          platforms: linux/amd64
+          tags: local/smoke:${{ matrix.smoke_tag }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: "Smoke test image."
+        if: ${{ matrix.channel != 'experimental' || (github.event_name == 'workflow_dispatch' && inputs.build_experimental_images) }}
+        run: |
+          set -euo pipefail
+
+          smoke_tag="local/smoke:${{ matrix.smoke_tag }}"
+          image_name="${{ matrix.image_name }}"
+
+          case "${image_name}" in
+            */al2023|*/alpine|*/debian-slim)
+              docker run --rm --entrypoint /bin/sh "${smoke_tag}" -c "zsh --version"
+              ;;
+            */kubectl)
+              docker run --rm "${smoke_tag}" version --client >/dev/null
+              ;;
+            */opentofu)
+              docker run --rm "${smoke_tag}" version >/dev/null
+              ;;
+            *)
+              docker run --rm "${smoke_tag}" --help >/dev/null
+              ;;
+          esac
+
       - name: "Login: ghcr.io"
+        if: ${{ env.PUSH_IMAGES == 'true' && (matrix.channel != 'experimental' || (github.event_name == 'workflow_dispatch' && inputs.build_experimental_images)) }}
         uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+
       - name: "Login: Docker Hub"
+        if: ${{ env.PUSH_IMAGES == 'true' && (matrix.channel != 'experimental' || (github.event_name == 'workflow_dispatch' && inputs.build_experimental_images)) }}
         uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
         with:
           username: ${{ vars.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
+
       - name: "Build and push image."
-        id: build-push-image
+        if: ${{ matrix.channel != 'experimental' || (github.event_name == 'workflow_dispatch' && inputs.build_experimental_images) }}
         uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
-        if:
         with:
-          context: ${{ matrix.images.context }}
-          file: ${{ matrix.images.context }}/Dockerfile
+          context: ${{ matrix.context }}
+          file: ${{ matrix.file }}
           push: ${{ env.PUSH_IMAGES }}
           provenance: ${{ env.PROVENANCE }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-          tags: |
-            ${{ matrix.images.image_name }}:${{ env.DEFAULT_TAG }}
-            ghcr.io/${{ matrix.images.image_name }}:${{ env.DEFAULT_TAG }}
-          platforms: ${{ join(matrix.images.supported_platforms, ',') }}
+          tags: ${{ steps.tags.outputs.tags }}
+          platforms: ${{ matrix.platforms }}
           labels: |-
             org.opencontainers.image.vendor=${{ github.repository_owner }}
             org.opencontainers.image.source=https://github.com/${{ github.repository}}
-            org.opencontainers.image.description=${{ matrix.images.description }}
+            org.opencontainers.image.description=${{ matrix.description }}
             org.opencontainers.image.revision=${{ github.sha }}
-            org.opencontainers.image.title=${{ matrix.images.image_name }}
-
-  build-tool-images:
-    needs: build-base-images
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-    strategy:
-      fail-fast: false
-      matrix:
-        images:
-          - context: tools/opentofu
-            image_name: ${{ github.repository_owner }}/opentofu
-            description: "OpenTofu is an open source IaC tool that allows management of infrastructure as code."
-            supported_platforms:
-              - linux/amd64
-              - linux/arm64
-              - linux/arm/v7
-              - linux/arm/v8
-          - context: tools/kubectl
-            image_name: ${{ github.repository_owner }}/kubectl
-            description: "Kubectl is a CLI tool for running commands against Kubernetes clusters."
-            supported_platforms:
-              - linux/amd64
-              - linux/arm64
-              - linux/arm/v7
-              - linux/arm/v8
-    outputs:
-      digests: ${{ steps.push-image.outputs.digest }}
-    steps:
-      - name: "Checkout repository."
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
-      - name: "Set up Docker Buildx."
-        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
-        with:
-          platforms: ${{ join(matrix.images.supported_platforms, ',') }}
-      - name: "Login: ghcr.io"
-        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      - name: "Login: Docker Hub"
-        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
-        with:
-          username: ${{ vars.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-      - name: "Build and push image."
-        id: push-image
-        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
-        with:
-          context: ${{ matrix.images.context }}
-          file: ${{ matrix.images.context }}/Dockerfile
-          push: ${{ env.PUSH_IMAGES}}
-          provenance: ${{ env.PROVENANCE }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-          tags: |
-            ${{ matrix.images.image_name }}:${{ env.DEFAULT_TAG }}
-            ghcr.io/${{ matrix.images.image_name }}:${{ env.DEFAULT_TAG }}
-          platforms: ${{ join(matrix.images.supported_platforms, ',') }}
-          labels: |-
-            org.opencontainers.image.vendor=${{ github.repository_owner }}
-            org.opencontainers.image.source=https://github.com/${{ github.repository}}
-            org.opencontainers.image.description=${{ matrix.images.description }}
-            org.opencontainers.image.revision=${{ github.sha }}
-            org.opencontainers.image.title=${{ matrix.images.image_name }}
-            org.opencontainers.image.version=${{ github.ref }}
-
-  build-experimental-images:
-    needs: build-base-images
-    if: inputs.build_experimental_images
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-    strategy:
-      fail-fast: false
-      matrix:
-        images:
-          - context: tools/opentofu
-            image_name: ${{ github.repository_owner }}/opentofu
-            description: "OpenTofu is an open source IaC tool that allows management of infrastructure as code."
-            supported_platforms:
-              - linux/amd64
-              - linux/arm64
-              - linux/arm/v7
-              - linux/arm/v8
-    outputs:
-      digests: ${{ steps.push-image.outputs.digest }}
-    steps:
-      - name: "Checkout repository."
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
-      - name: "Set up Docker Buildx."
-        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
-        with:
-          platforms: ${{ join(matrix.images.supported_platforms, ',') }}
-      - name: "Login: ghcr.io"
-        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      - name: "Login: Docker Hub"
-        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
-        with:
-          username: ${{ vars.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-      - name: "Build and push image."
-        id: push-image
-        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
-        with:
-          context: ${{ matrix.images.context }}
-          file: ${{ matrix.images.context }}/Dockerfile
-          push: ${{ env.PUSH_IMAGES}}
-          provenance: ${{ env.PROVENANCE }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-          tags: |
-            ${{ matrix.images.image_name }}:experimental
-            ghcr.io/${{ matrix.images.image_name }}:experimental
-          platforms: ${{ join(matrix.images.supported_platforms, ',') }}
-          labels: |-
-            org.opencontainers.image.vendor=${{ github.repository_owner }}
-            org.opencontainers.image.source=https://github.com/${{ github.repository}}
-            org.opencontainers.image.description=${{ matrix.images.description }}
-            org.opencontainers.image.revision=${{ github.sha }}
-            org.opencontainers.image.title=${{ matrix.images.image_name }}
-            org.opencontainers.image.version=${{ github.ref }}
+            org.opencontainers.image.title=${{ matrix.image_name }}
+            org.opencontainers.image.version=${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || github.sha }}
