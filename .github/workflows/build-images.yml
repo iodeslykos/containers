@@ -102,6 +102,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: "Load base image version tags."
+        if: ${{ matrix.channel != 'experimental' || (github.event_name == 'workflow_dispatch' && inputs.build_experimental_images) }}
         id: base_versions
         run: |
           set -euo pipefail
