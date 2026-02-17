@@ -27,15 +27,19 @@ on:
         type: boolean
         required: true
         default: false
+      release_version:
+        description: "Optional release version tag (e.g. 1.2.3)."
+        type: string
+        required: false
+        default: ""
 
 env:
-  DEFAULT_TAG: "latest"
   PROVENANCE: ${{ inputs.provenance }}
   PUSH_IMAGES: ${{ inputs.push_images || github.ref == 'refs/heads/trunk' }}
-  SHA_SHORT: ""
+  RELEASE_VERSION: ${{ inputs.release_version }}
 
 jobs:
-  build-base-images:
+  build-images:
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -43,205 +47,130 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        images:
+        include:
           - context: base/al2023
+            file: base/al2023/Dockerfile
             image_name: ${{ github.repository_owner }}/al2023
             description: "Amazon Linux 2023"
-            supported_platforms:
-              - linux/amd64
-              - linux/arm64
+            platforms: "linux/amd64,linux/arm64"
+            channel: stable
           - context: base/alpine
+            file: base/alpine/Dockerfile
             image_name: ${{ github.repository_owner }}/alpine
             description: "Alpine Linux"
-            supported_platforms:
-              - linux/amd64
-              - linux/arm64
-              - linux/arm/v7
-              - linux/arm/v8
+            platforms: "linux/amd64,linux/arm64,linux/arm/v7"
+            channel: stable
           - context: base/debian
+            file: base/debian/Dockerfile
             image_name: ${{ github.repository_owner }}/debian
             description: "Debian Linux (Slim)"
-            supported_platforms:
-              - linux/amd64
-              - linux/arm64
-              - linux/arm/v7
-              - linux/arm/v8
-    outputs:
-      digests: ${{ steps.build-push-image.outputs.digest }}
+            platforms: "linux/amd64,linux/arm64,linux/arm/v7"
+            channel: stable
+          - context: tools/opentofu
+            file: tools/opentofu/Dockerfile
+            image_name: ${{ github.repository_owner }}/opentofu
+            description: "OpenTofu is an open source IaC tool that allows management of infrastructure as code."
+            platforms: "linux/amd64,linux/arm64"
+            channel: stable
+          - context: tools/kubectl
+            file: tools/kubectl/Dockerfile
+            image_name: ${{ github.repository_owner }}/kubectl
+            description: "Kubectl is a CLI tool for running commands against Kubernetes clusters."
+            platforms: "linux/amd64,linux/arm64"
+            channel: stable
+          - context: tools/opentofu
+            file: tools/opentofu/Dockerfile_experimental
+            image_name: ${{ github.repository_owner }}/opentofu
+            description: "OpenTofu experimental build."
+            platforms: "linux/amd64,linux/arm64"
+            channel: experimental
+
     steps:
       - name: "Checkout repository."
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: "Skip experimental image on non-dispatch or disabled dispatch input."
+        if: ${{ matrix.channel == 'experimental' && !inputs.build_experimental_images }}
+        run: |
+          echo "Skipping experimental image build by configuration."
+          exit 0
+
       - name: "Set up Docker Buildx."
+        if: ${{ matrix.channel != 'experimental' || inputs.build_experimental_images }}
         uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
         with:
-          platforms: ${{ join(matrix.images.supported_platforms, ',') }}
+          platforms: ${{ matrix.platforms }}
+
+      - name: "Compute image tags."
+        if: ${{ matrix.channel != 'experimental' || inputs.build_experimental_images }}
+        id: tags
+        run: |
+          set -euo pipefail
+
+          short_sha="${GITHUB_SHA::12}"
+          image_name="${{ matrix.image_name }}"
+          release_version="${{ env.RELEASE_VERSION }}"
+          channel="${{ matrix.channel }}"
+
+          tags=()
+          for registry_prefix in "" "ghcr.io/"; do
+            base="${registry_prefix}${image_name}"
+
+            if [ "${channel}" = "stable" ]; then
+              tags+=("${base}:latest")
+              tags+=("${base}:sha-${short_sha}")
+              if [ -n "${release_version}" ]; then
+                tags+=("${base}:${release_version}")
+              fi
+            else
+              tags+=("${base}:experimental")
+              tags+=("${base}:experimental-sha-${short_sha}")
+              if [ -n "${release_version}" ]; then
+                tags+=("${base}:${release_version}-experimental")
+              fi
+            fi
+          done
+
+          {
+            echo "tags<<EOF"
+            printf '%s\n' "${tags[@]}"
+            echo "EOF"
+          } >> "${GITHUB_OUTPUT}"
+
       - name: "Login: ghcr.io"
+        if: ${{ env.PUSH_IMAGES == 'true' && (matrix.channel != 'experimental' || inputs.build_experimental_images) }}
         uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+
       - name: "Login: Docker Hub"
+        if: ${{ env.PUSH_IMAGES == 'true' && (matrix.channel != 'experimental' || inputs.build_experimental_images) }}
         uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
         with:
           username: ${{ vars.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
+
       - name: "Build and push image."
-        id: build-push-image
+        if: ${{ matrix.channel != 'experimental' || inputs.build_experimental_images }}
         uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
-        if:
         with:
-          context: ${{ matrix.images.context }}
-          file: ${{ matrix.images.context }}/Dockerfile
+          context: ${{ matrix.context }}
+          file: ${{ matrix.file }}
           push: ${{ env.PUSH_IMAGES }}
           provenance: ${{ env.PROVENANCE }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-          tags: |
-            ${{ matrix.images.image_name }}:${{ env.DEFAULT_TAG }}
-            ghcr.io/${{ matrix.images.image_name }}:${{ env.DEFAULT_TAG }}
-          platforms: ${{ join(matrix.images.supported_platforms, ',') }}
+          tags: ${{ steps.tags.outputs.tags }}
+          platforms: ${{ matrix.platforms }}
           labels: |-
             org.opencontainers.image.vendor=${{ github.repository_owner }}
             org.opencontainers.image.source=https://github.com/${{ github.repository}}
-            org.opencontainers.image.description=${{ matrix.images.description }}
+            org.opencontainers.image.description=${{ matrix.description }}
             org.opencontainers.image.revision=${{ github.sha }}
-            org.opencontainers.image.title=${{ matrix.images.image_name }}
-
-  build-tool-images:
-    needs: build-base-images
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-    strategy:
-      fail-fast: false
-      matrix:
-        images:
-          - context: tools/opentofu
-            image_name: ${{ github.repository_owner }}/opentofu
-            description: "OpenTofu is an open source IaC tool that allows management of infrastructure as code."
-            supported_platforms:
-              - linux/amd64
-              - linux/arm64
-              - linux/arm/v7
-              - linux/arm/v8
-          - context: tools/kubectl
-            image_name: ${{ github.repository_owner }}/kubectl
-            description: "Kubectl is a CLI tool for running commands against Kubernetes clusters."
-            supported_platforms:
-              - linux/amd64
-              - linux/arm64
-              - linux/arm/v7
-              - linux/arm/v8
-    outputs:
-      digests: ${{ steps.push-image.outputs.digest }}
-    steps:
-      - name: "Checkout repository."
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
-      - name: "Set up Docker Buildx."
-        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
-        with:
-          platforms: ${{ join(matrix.images.supported_platforms, ',') }}
-      - name: "Login: ghcr.io"
-        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      - name: "Login: Docker Hub"
-        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
-        with:
-          username: ${{ vars.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-      - name: "Build and push image."
-        id: push-image
-        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
-        with:
-          context: ${{ matrix.images.context }}
-          file: ${{ matrix.images.context }}/Dockerfile
-          push: ${{ env.PUSH_IMAGES}}
-          provenance: ${{ env.PROVENANCE }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-          tags: |
-            ${{ matrix.images.image_name }}:${{ env.DEFAULT_TAG }}
-            ghcr.io/${{ matrix.images.image_name }}:${{ env.DEFAULT_TAG }}
-          platforms: ${{ join(matrix.images.supported_platforms, ',') }}
-          labels: |-
-            org.opencontainers.image.vendor=${{ github.repository_owner }}
-            org.opencontainers.image.source=https://github.com/${{ github.repository}}
-            org.opencontainers.image.description=${{ matrix.images.description }}
-            org.opencontainers.image.revision=${{ github.sha }}
-            org.opencontainers.image.title=${{ matrix.images.image_name }}
-            org.opencontainers.image.version=${{ github.ref }}
-
-  build-experimental-images:
-    needs: build-base-images
-    if: inputs.build_experimental_images
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-    strategy:
-      fail-fast: false
-      matrix:
-        images:
-          - context: tools/opentofu
-            image_name: ${{ github.repository_owner }}/opentofu
-            description: "OpenTofu is an open source IaC tool that allows management of infrastructure as code."
-            supported_platforms:
-              - linux/amd64
-              - linux/arm64
-              - linux/arm/v7
-              - linux/arm/v8
-    outputs:
-      digests: ${{ steps.push-image.outputs.digest }}
-    steps:
-      - name: "Checkout repository."
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
-      - name: "Set up Docker Buildx."
-        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
-        with:
-          platforms: ${{ join(matrix.images.supported_platforms, ',') }}
-      - name: "Login: ghcr.io"
-        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      - name: "Login: Docker Hub"
-        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
-        with:
-          username: ${{ vars.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-      - name: "Build and push image."
-        id: push-image
-        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
-        with:
-          context: ${{ matrix.images.context }}
-          file: ${{ matrix.images.context }}/Dockerfile
-          push: ${{ env.PUSH_IMAGES}}
-          provenance: ${{ env.PROVENANCE }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-          tags: |
-            ${{ matrix.images.image_name }}:experimental
-            ghcr.io/${{ matrix.images.image_name }}:experimental
-          platforms: ${{ join(matrix.images.supported_platforms, ',') }}
-          labels: |-
-            org.opencontainers.image.vendor=${{ github.repository_owner }}
-            org.opencontainers.image.source=https://github.com/${{ github.repository}}
-            org.opencontainers.image.description=${{ matrix.images.description }}
-            org.opencontainers.image.revision=${{ github.sha }}
-            org.opencontainers.image.title=${{ matrix.images.image_name }}
-            org.opencontainers.image.version=${{ github.ref }}
+            org.opencontainers.image.title=${{ matrix.image_name }}
+            org.opencontainers.image.version=${{ env.RELEASE_VERSION != '' && env.RELEASE_VERSION || github.sha }}
