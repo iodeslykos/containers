@@ -9,14 +9,9 @@ fail() {
   exit 1
 }
 
-# Install dependencies.
-
-apt update && apt install -y --no-install-recommends \
-  rg
-
+# Ripgrep is required for this script. Check if it's installed.
 if ! command -v rg >/dev/null; then
-  echo "ripgrep (rg) is required but not found. Please install it and try again." >&2
-  exit 1
+  fail "ripgrep (rg) is required but not found. Please install it and try again, bruh."
 fi
 
 if rg -n '^FROM[[:space:]]+[^[:space:]]+:latest([[:space:]]|@|$)' base tools >/dev/null; then
