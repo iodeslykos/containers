@@ -95,6 +95,7 @@ jobs:
 
     steps:
       - name: "Checkout repository."
+        if: ${{ matrix.channel != 'experimental' || (github.event_name == 'workflow_dispatch' && inputs.build_experimental_images) }}
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
@@ -169,7 +170,7 @@ jobs:
           for registry_prefix in "" "ghcr.io/"; do
             base="${registry_prefix}${image_name}"
 
-            if [ "${channel}" = "stable" ]; then
+            if [ "${channel}" != "experimental" ]; then
               if [ "${is_trunk}" = true ]; then
                 tags+=("${base}:latest")
               fi
@@ -191,6 +192,11 @@ jobs:
               tags+=("${base}:experimental-sha-${short_sha}")
             fi
           done
+
+          if [ ${#tags[@]} -eq 0 ]; then
+            echo "ERROR: No tags generated for ${image_name}" >&2
+            exit 1
+          fi
 
           {
             echo "tags<<EOF"
@@ -221,7 +227,7 @@ jobs:
 
           case "${image_name}" in
             */al2023|*/alpine|*/debian-slim)
-              docker run --rm --entrypoint /bin/sh "${smoke_tag}" -lc "zsh --version >/dev/null"
+              docker run --rm --entrypoint /bin/sh "${smoke_tag}" -c "zsh --version"
               ;;
             */kubectl)
               docker run --rm "${smoke_tag}" version --client >/dev/null
