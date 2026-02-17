@@ -51,7 +51,7 @@ jobs:
             description: "Amazon Linux 2023"
             platforms: "linux/amd64,linux/arm64"
             channel: stable
-            version_tags: "2023.10.20260202.2,2023.10"
+            version_tags: ""
           - context: base/alpine
             file: base/alpine/Dockerfile
             smoke_tag: base-alpine
@@ -59,7 +59,7 @@ jobs:
             description: "Alpine Linux"
             platforms: "linux/amd64,linux/arm64,linux/arm/v7"
             channel: stable
-            version_tags: "3.23.3,3.23"
+            version_tags: ""
           - context: base/debian
             file: base/debian/Dockerfile
             smoke_tag: base-debian
@@ -67,7 +67,7 @@ jobs:
             description: "Debian Linux (Slim)"
             platforms: "linux/amd64,linux/arm64,linux/arm/v7"
             channel: stable
-            version_tags: "13.3-slim,13-slim,bookworm-slim"
+            version_tags: ""
           - context: tools/opentofu
             file: tools/opentofu/Dockerfile
             smoke_tag: tools-opentofu
@@ -100,11 +100,16 @@ jobs:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: "Skip experimental image on non-dispatch or disabled dispatch input."
-        if: ${{ matrix.channel == 'experimental' && (github.event_name != 'workflow_dispatch' || !inputs.build_experimental_images) }}
+      - name: "Load base image version tags."
+        id: base_versions
         run: |
-          echo "Skipping experimental image build by configuration."
-          exit 0
+          set -euo pipefail
+          source versions/base-images.env
+          {
+            echo "al2023_version_tags=${AL2023_VERSION_TAGS}"
+            echo "alpine_version_tags=${ALPINE_VERSION_TAGS}"
+            echo "debian_slim_version_tags=${DEBIAN_SLIM_VERSION_TAGS}"
+          } >> "${GITHUB_OUTPUT}"
 
       - name: "Set up Docker Buildx."
         if: ${{ matrix.channel != 'experimental' || (github.event_name == 'workflow_dispatch' && inputs.build_experimental_images) }}
@@ -121,9 +126,26 @@ jobs:
           short_sha="${GITHUB_SHA::12}"
           image_name="${{ matrix.image_name }}"
           version_tags_csv="${{ matrix.version_tags }}"
+          al2023_version_tags="${{ steps.base_versions.outputs.al2023_version_tags }}"
+          alpine_version_tags="${{ steps.base_versions.outputs.alpine_version_tags }}"
+          debian_slim_version_tags="${{ steps.base_versions.outputs.debian_slim_version_tags }}"
           release_version=""
           channel="${{ matrix.channel }}"
           is_trunk=false
+
+          if [ -z "${version_tags_csv}" ]; then
+            case "${image_name}" in
+              */al2023)
+                version_tags_csv="${al2023_version_tags}"
+                ;;
+              */alpine)
+                version_tags_csv="${alpine_version_tags}"
+                ;;
+              */debian-slim)
+                version_tags_csv="${debian_slim_version_tags}"
+                ;;
+            esac
+          fi
 
           if [ "${GITHUB_REF}" = "refs/heads/trunk" ]; then
             is_trunk=true
