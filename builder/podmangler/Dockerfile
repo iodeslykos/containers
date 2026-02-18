@@ -35,6 +35,8 @@ RUN apt-get update \
   slirp4netns \
   uidmap \
   yq \
+  # Additional apt-get install stage for podman networking dependencies.
+  nftables netavark aardvark-dns iptables iproute2 \
   && update-ca-certificates \
   && apt-get clean \
   && rm -rf /var/lib/apt/lists/*
