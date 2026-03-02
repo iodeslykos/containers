@@ -1,5 +1,5 @@
 # hadolint ignore=DL3007
-FROM ghcr.io/iodeslykos/debian-slim:latest@sha256:a3126af57a26f77ebf6ae7b42f7f0a47269aaeee7f2266942a89375e72e5bc45 AS base
+FROM ghcr.io/iodeslykos/debian-slim:latest@sha256:5c909e17f70067e4e9d5d690c6286ac6c6edc796af44f4bc1c2f3b813619b49b AS base
 
 ENV USER=outis
 ENV GROUP=outis
