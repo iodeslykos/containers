@@ -24,7 +24,7 @@ WORKDIR ${workdir}/cmd/tofu
 
 RUN CGO_ENABLED=0 GOOS=${build_os} GOARCH=${build_arch} go build -a -ldflags "-w -s -extldflags '-static' -X 'main.experimentsAllowed=yes'" -o /bin/tofu
 
-FROM ghcr.io/iodeslykos/alpine:3.23.3@sha256:997f941f0310caf68a305a02132f2751c58dd74374255ae2a4687640a9946e53 AS final
+FROM ghcr.io/iodeslykos/alpine:3.23.3@sha256:6686ce66e33dd3d1a6bf938f750ff6e0537836277fde322b4deb3c8710eb21ec AS final
 
 COPY --from=builder /bin/tofu /usr/local/bin/tofu
 
