@@ -1,4 +1,4 @@
-FROM debian:12.8-slim@sha256:d365f4920711a9074c4bcd178e8f457ee59250426441ab2a5f8106ed8fe948eb
+FROM docker.io/library/debian:13.5-slim@sha256:28de0877c2189802884ccd20f15ee41c203573bd87bb6b883f5f46362d24c5c2
 
 ENV USER=outis
 ENV GROUP=outis

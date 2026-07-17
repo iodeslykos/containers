@@ -1,0 +1,4 @@
+kubernetes:4355.vc1b_8f42f7b_43
+git:5.8.0
+workflow-aggregator:608.v67378e9d3db_1
+credentials-binding:687.v619cb_15e923f

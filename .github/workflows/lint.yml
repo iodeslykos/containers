@@ -2,9 +2,10 @@
 name: lint
 
 on:
+  workflow_dispatch:
   pull_request:
   push:
-    branches: [trunk]
+    branches: [main]
 
 concurrency:
   group: ${{ github.ref }}-${{ github.workflow }}
@@ -13,7 +14,26 @@ concurrency:
 jobs:
   pre-commit:
     runs-on: ubuntu-latest
+    env:
+      SKIP: hadolint # Run Hadolint separately due to GitHub Actions runner weirdness.
     steps:
-      - uses: actions/checkout@cbb722410c2e876e24abbe8de2cc27693e501dcb
-      - uses: actions/setup-python@3fddbee7870211eda9047db10474808be43c71ec
-      - uses: pre-commit/action@576ff52938d158a24ac7e009dfa94b1455e7df99
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+      - uses: pre-commit/action@2c7b3805fd2a0fd8c1884dcaebf91fc102a13ecd # v3.0.1
+  hadolint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: hadolint/hadolint-action@2332a7b74a6de0dda2e2221d575162eba76ba5e5 # v3.3.0
+        with:
+          recursive: true # Required to prevent failure when there are no Dockerfiles in the root directory.
+  validate-image-refs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            ripgrep
+      - run: ./scripts/validate-image-refs.sh

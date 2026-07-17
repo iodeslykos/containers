@@ -1,4 +1,4 @@
-FROM golang:alpine@sha256:c23339199a08b0e12032856908589a6d41a0dab141b8b3b21f156fc571a3f1d3 AS builder
+FROM docker.io/library/golang:1.25-alpine3.21@sha256:b4dbd292a0852331c89dfd64e84d16811f3e3aae4c73c13d026c4d200715aff6 AS builder
 
 LABEL org.opencontainers.image.title="opentofu"
 LABEL org.opencontainers.image.authors="iodeslykos <42@iodeslykos.com>"
@@ -24,7 +24,7 @@ WORKDIR ${workdir}/cmd/tofu
 
 RUN CGO_ENABLED=0 GOOS=${build_os} GOARCH=${build_arch} go build -a -ldflags "-w -s -extldflags '-static' -X 'main.experimentsAllowed=yes'" -o /bin/tofu
 
-FROM ghcr.io/iodeslykos/alpine:latest@sha256:b1ae9433bc97ef192b5329908eed3a39a33a5d9fd25fa8e7891f43a541376bd7 AS final
+FROM ghcr.io/iodeslykos/alpine:3.23.3@sha256:637c7806294ce967fc81b02a2263ecf6efa82bff8f9b18748112c36e160ab6f3 AS final
 
 COPY --from=builder /bin/tofu /usr/local/bin/tofu
 

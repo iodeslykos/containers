@@ -1,0 +1,12 @@
+autoload -Uz compinit bashcompinit
+compinit
+bashcompinit
+
+source /usr/share/zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
+
+autoload edit-command-line
+zle -N edit-command-line
+zstyle ':completion:*' menu select
+
+[[ $commands[kubectl] ]] && source <(kubectl completion zsh)
+[[ $commands[helm] ]] && source <(helm completion zsh)

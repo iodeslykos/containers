@@ -1,5 +1,4 @@
-# hadolint ignore=DL3007
-FROM ghcr.io/iodeslykos/alpine:latest@sha256:b1ae9433bc97ef192b5329908eed3a39a33a5d9fd25fa8e7891f43a541376bd7 AS base
+FROM ghcr.io/iodeslykos/alpine:3.23.3@sha256:637c7806294ce967fc81b02a2263ecf6efa82bff8f9b18748112c36e160ab6f3 AS base
 
 LABEL org.opencontainers.image.title="kubectl"
 LABEL org.opencontainers.image.authors="iodeslykos <42@iodeslykos.com>"

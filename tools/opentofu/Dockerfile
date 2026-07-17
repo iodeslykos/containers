@@ -1,5 +1,4 @@
-# hadolint ignore=DL3007
-FROM ghcr.io/iodeslykos/alpine:latest@sha256:b1ae9433bc97ef192b5329908eed3a39a33a5d9fd25fa8e7891f43a541376bd7 AS base
+FROM ghcr.io/iodeslykos/alpine:3.23.3@sha256:637c7806294ce967fc81b02a2263ecf6efa82bff8f9b18748112c36e160ab6f3 AS base
 
 LABEL org.opencontainers.image.title="opentofu"
 LABEL org.opencontainers.image.authors="iodeslykos <42@iodeslykos.com>"
@@ -12,7 +11,7 @@ ARG TARGETARCH
 ARG TARGETOS
 ARG APP=tofu
 
-ARG VERSION='1.9.0'
+ARG VERSION='1.10.0'
 
 ENV USER=outis
 
@@ -25,7 +24,7 @@ RUN apk add --no-cache \
 # hadolint ignore=DL4006
 RUN curl -fsSL -o "${WORKDIR}/${APP}.apk" \
         "https://github.com/opentofu/opentofu/releases/download/v${VERSION}/${APP}_${VERSION}_${TARGETARCH}.apk" \
-    && apk add --no-cache --allow-untrusted \
+        && apk add --no-cache --allow-untrusted \
         "${WORKDIR}/${APP}.apk" \
         && rm -rf "${WORKDIR}/${APP}.apk"
 

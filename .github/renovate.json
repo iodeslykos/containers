@@ -11,13 +11,21 @@
   "packageRules": [
     {
       "description": "Automatically merge PRs that match select update types.",
-      "matchUpdateTypes": ["minor", "patch", "pin", "digest"],
+      "commitMessageExtra": " {{ currentVersion }} -> {{ newVersion }} ",
+      "matchUpdateTypes": ["patch", "digest", "hash", "lockFileMaintenance"],
       "automerge": true,
       "automergeType": "pr",
       "schedule": ["* 12-15 * * *"]
+    },
+    {
+      "description": "Create, but do not merge PRs that match select update types.",
+      "commitMessageExtra": " {{ currentVersion }} -> {{ newVersion }} ",
+      "matchUpdateTypes": ["major", "minor"],
+      "automerge": false,
+      "schedule": ["* 12-15 * * *"]
     }
   ],
-  "pinDigests": true,
+  "pinDigests": false,
   "semanticCommits": "enabled",
   "timezone": "Etc/UTC"
 }
