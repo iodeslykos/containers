@@ -254,7 +254,7 @@ jobs:
 
       - name: "Login: ghcr.io"
         if: ${{ env.PUSH_IMAGES == 'true' && (matrix.channel != 'experimental' || (github.event_name == 'workflow_dispatch' && inputs.build_experimental_images)) }}
-        uses: docker/login-action@371161bbe7024a29a25c5e19bfcbc0804fe9ad2c # v4.5.2
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -262,7 +262,7 @@ jobs:
 
       - name: "Login: Docker Hub"
         if: ${{ env.PUSH_IMAGES == 'true' && (matrix.channel != 'experimental' || (github.event_name == 'workflow_dispatch' && inputs.build_experimental_images)) }}
-        uses: docker/login-action@371161bbe7024a29a25c5e19bfcbc0804fe9ad2c # v4.5.2
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
         with:
           username: ${{ vars.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
