@@ -1,4 +1,4 @@
-FROM public.ecr.aws/amazonlinux/amazonlinux:2023.12.20260909.0@sha256:a0646b8bd35abf5ca3ab94d8cdb5691b9024e19c357531eeefd0ac4762836438
+FROM public.ecr.aws/amazonlinux/amazonlinux:2027.0.20260903.0@sha256:a6c4227aac90ecad487ee5fc82849b2d043659fffed35fd68473c262e2a96e94
 
 ENV USER=outis
 ENV GROUP=outis
