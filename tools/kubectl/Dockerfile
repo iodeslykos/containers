@@ -1,4 +1,4 @@
-FROM ghcr.io/iodeslykos/alpine:3.23.3@sha256:5cef1a24dac63537f623a9902f12dfff1f761cc45b45ca929a0e81ab6218a99d AS base
+FROM ghcr.io/iodeslykos/alpine:3.23.3@sha256:594386495a139c36fe7fe631bde45de63d42508f73d2fc577e105177da2725fb AS base
 
 LABEL org.opencontainers.image.title="kubectl"
 LABEL org.opencontainers.image.authors="iodeslykos <42@iodeslykos.com>"
